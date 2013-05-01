@@ -1,0 +1,6 @@
+export(lmeNB,
+       mle.fun,index.batch,
+       mle.a3.fun,mle.ar1.fun,
+       mle.ar1.non3,
+       jCP.ar1,CP1.ar1,MCCP.ar1,CP.ar1.se,CP.se,jCP,formulaToDat,
+       rNBME.R,print.LinearMixedEffectNBFreq)
