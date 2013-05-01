@@ -155,8 +155,7 @@ The relative frequency table of \emph{g_i}, (\emph{i=1,...,N}).
 }
 
 \references{
- Zhao, Y., Li, D.K.B., Petkau, J.A., Riddehough, A. & Traboulsee, A.  Detection of unusually large increases in 
-MRI lesion counts in multiple sclerosis patients.
+Zhao, Y., Li, D.K.B., Petkau, J.A., Riddehough, A. & Traboulsee, A.  Detection of unusual increases in MRI lesion counts in multiple sclerosis patients.
 }
 \author{
  Zhao, Y. and Kondo, Y.
@@ -189,10 +188,12 @@ The functions to generate simulated datasets:
 
 \examples{
 \dontrun{
-## generate a simulated dataset from the negative binomial mixed-effect independent model:
+## generate a simulated dataset from the negative binomial 
+## mixed-effect independent model:
 ## Y_ij | G_i = g_i ~ NB(r_ij,p_i) where r_ij = exp(X^T beta)/a , p_i =1/(a*g_i+1)
 ## with G_i is from unknown distribution
-## For the simulation purpose, G_i's are from the mixture of the gamma and the log-normal distributions.
+## For the simulation purpose, G_i's are from the mixture of 
+$$ the gamma and the log-normal distributions.
 
 
 sn = 5 ## the number of repeated measures of each subject
@@ -200,7 +201,8 @@ n = 80 ## the number of subjects
 logtheta = 1.3
 th = exp(logtheta) ## the parameter for the gamma distribution of g_i
 loga = -0.5
-a = exp(loga) ## the parameter for the failure probability of the negative binomial distribution
+## the parameter for the failure probability of the negative binomial distribution
+a = exp(loga) 
 b0 = 0.5
 u1 = rep(exp(b0),sn) ## the mean vector for group 1 at time point 1,...,sn
 u2 = rep(exp(b0),sn) ## the mean vector for group 2 at time point 1,...,sn
@@ -216,34 +218,40 @@ Vcode=rep(-1:(sn-2),n) # scan number -1, 0, 1, 2, 3
 new=Vcode>0         # new scans: 1,2,3
 
 
-## 1) Fit the negative binomial mixed-effect AR(1) model where random effects is from the gamma distribution
+## 1) Fit the negative binomial mixed-effect AR(1) model 
+## where random effects is from the gamma distribution
 
 logitd = -0.2
 re.gamma.ar1=mle.ar1.fun(formula=CEL~1,data=dt3,ID=ID,
 		      Vcode=Vcode, 
-		      p.ini=c(loga,logtheta,logitd,b0), ## log(a), log(theta), logit(d), b0
+		      p.ini=c(loga,logtheta,logitd,b0), 
+		      ## log(a), log(theta), logit(d), b0
 		       model="G", 
 		      IPRT=TRUE)
 
 
-## compute the estimates of the conditional probabilities with sum of the new repeated measure as a summary statistics 
-Psum=index.batch(olmeNB=re.gamma.ar1,data=dt3,ID=ID, Vcode=Vcode, labelnp=new,qfun="sum", IPRT=TRUE,i.se=FALSE)  
+## compute the estimates of the conditional probabilities 
+## with sum of the new repeated measure as a summary statistics 
+Psum=index.batch(olmeNB=re.gamma.ar1,data=dt3,ID=ID, Vcode=Vcode, 
+                 labelnp=new,qfun="sum", IPRT=TRUE,i.se=FALSE)  
 		 
 
 
-## 2) Fit the negative binomial mixed-effect AR(1) model where random effects is from the log-normal distribution
+## 2) Fit the negative binomial mixed-effect AR(1) model 
+## where random effects is from the log-normal distribution
 
 
 re.logn.ar1=mle.ar1.fun(formula=CEL~1,data=dt3,ID=ID,
 		      Vcode=Vcode, model="N", IPRT=TRUE)
-\dontrun{
+
 ## REQUIRES SOME TIME..
 Psum=index.batch(olmeNB=re.logn.ar1, data=dt3,ID=ID,Vcode=Vcode,
 	         labelnp=new,qfun="sum", IPRT=TRUE)#,i.se=FALSE) 
-}
 
 
-## 3) Fit the negative binomial independent model where random effects is from the gamma distribution
+
+## 3) Fit the negative binomial independent model 
+## where random effects is from the gamma distribution
 re.gamma.ind=mle.fun(formula=CEL~1,data=dt3,ID=ID, 
                    model="G", 
 		   IPRT=TRUE)
@@ -253,7 +261,8 @@ Psum=index.batch(olmeNB=re.gamma.ind, data=dt3,ID=ID,Vcode=Vcode,
 
 
 
-## 4) Fit the negative binomial independent model where random effects is from the lognormal distribution
+## 4) Fit the negative binomial independent model 
+## where random effects is from the lognormal distribution
 re.logn.ind=mle.fun(formula=CEL~1,data=dt3,ID=ID, 
                    model="N", 			   	
 		   p.ini=c(loga,logtheta,b0), 		
@@ -266,20 +275,26 @@ Psum=index.batch(olmeNB=re.logn.ind,data=dt3,ID=ID,labelnp=new,qfun="sum", IPRT=
 logvarG = -0.4
 
 re.semi.ar1=mle.ar1.non3(formula=CEL~1,data=dt3,ID=ID,Vcode=Vcode)
-Psum=index.batch(olmeNB=re.semi.ar1,data=dt3,ID=ID,Vcode=Vcode, labelnp=new,qfun="sum", IPRT=TRUE,iMC=TRUE,i.se=FALSE) 
+Psum=index.batch(olmeNB=re.semi.ar1,data=dt3,ID=ID,Vcode=Vcode, 
+                 labelnp=new,qfun="sum", IPRT=TRUE,iMC=TRUE,i.se=FALSE) 
 
 
 ## 6) Fit the semi-parametric negative binomial independent model 
 ## This is closest to the true model
 re.semi.ind=mle.a3.fun(formula=CEL~1,data=dt3,ID=ID, p.ini=c(loga, logvarG, b0))
 
-## compute the estimates of the conditional probabilities with sum of the new repeated measure as a summary statistics 
-Psum=index.batch(olmeNB=re.semi.ind,data=dt3,ID=ID, labelnp=new, qfun="sum", IPRT=TRUE,i.se=FALSE) 
-## compute the estimates of the conditional probabilities with max of the new repeated measure as a summary statistics 
-Pmax=index.batch(olmeNB=re.semi.ind, data=dt3,ID=ID,labelnp=new, qfun="max", IPRT=TRUE,i.se=FALSE) 
+## compute the estimates of the conditional probabilities 
+## with sum of the new repeated measure as a summary statistics 
+Psum=index.batch(olmeNB=re.semi.ind,data=dt3,ID=ID, labelnp=new, 
+                 qfun="sum", IPRT=TRUE,i.se=FALSE) 
+## compute the estimates of the conditional probabilities 
+## with max of the new repeated measure as a summary statistics 
+Pmax=index.batch(olmeNB=re.semi.ind, data=dt3,ID=ID,labelnp=new, qfun="max", 
+                 IPRT=TRUE,i.se=FALSE) 
 
 
-## Which patient's estimated probabilities based on the sum and max statistics disagrees the most?
+## Which patient's estimated probabilities based on the sum and max 
+## statistics disagrees the most?
 ( IDBigDif <- which(rank(abs(Pmax$condProbSummary[,1]-Psum$condProbSummary[,1]))==80) )
 ## Show the patient's CEL counts  
 dt3$CEL[ID==IDBigDif]

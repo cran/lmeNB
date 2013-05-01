@@ -140,8 +140,7 @@ Same as \code{oth}.
 }
 
 \references{
- Zhao, Y., Li, D.K.B., Petkau, A.J., Riddehough, A. & Traboulsee, A.  Detection of unusually large increases in 
-MRI lesion counts in multiple sclerosis patients.
+Zhao, Y., Li, D.K.B., Petkau, J.A., Riddehough, A. & Traboulsee, A.  Detection of unusual increases in MRI lesion counts in multiple sclerosis patients.
 }
 \author{
  Zhao, Y. and Kondo, Y.
@@ -219,7 +218,8 @@ jCP.ar1(tpar = tpar, ypre = ypre, ynew = ynew,
 	y2m=NULL,  XM =XM, stp = stp,
         mod = dist, LG = FALSE, MC = FALSE, N = 40000, qfun = "sum", oth = NULL)
 
-## jCP.ar1 calls for CP.ar1 to compute the estimate of the conditional probability via the adaptive quadrature (MC=F)
+## jCP.ar1 calls for CP.ar1 to compute the estimate of the conditional probability 
+## via the adaptive quadrature (MC=F)
 ## the estimate of the conditional probability
 
 u <- rep(exp(tpar[4]),length(ypre)+length(ynew))
@@ -229,7 +229,8 @@ CP1.ar1(ypre = ypre, ynew =ynew, y2m = NULL,
 	dt= ilgt(tpar[3]), mod = dist, qfun = "sum")
 
 
-## jCP.ar1 calls for CP.ar1 to compute the estimate of the conditional probability via the Monte Carlo method (MC=T)
+## jCP.ar1 calls for CP.ar1 to compute the estimate of the conditional probability 
+## via the Monte Carlo method (MC=T)
 ## the estimate of the conditional probability
 MCCP.ar1(ypre = ypre, ynew =ynew, stp = stp, 
 	 u = u, th = exp(tpar[2]), a = exp(tpar[1]),  dt = ilgt(tpar[3]), 

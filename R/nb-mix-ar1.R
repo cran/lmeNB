@@ -4,7 +4,6 @@
                                         # Functions to fit the Negative binomial mixture model with an AR(1) dependence structure
                                         # current options for distribution of random effects (RE): gamma, lognormal, non-parametric
 
-                                        #YZ (May 28, 2012) changes in index functions
 
 ##===========MLE=====================
 mle.ar1.fun <- function(
@@ -121,7 +120,7 @@ ar1.lk <- function(para,
   sz2 = th2-U #r[i, j] - d*r[i, j-1]
   tem = dat$ind[1:dat$np]
   sz2[tem] = th2[tem] #set sz2 = r[i, j] for the first scan
-                                        #Jun 25, 2012 YZ 
+                                      
   if (any(sz2<=0)) return(1.e15)
 
   nllk=0               #total likelihood
@@ -192,10 +191,8 @@ ar1.ln.intg=function(x=2, a_inv=0.5, mu=0.5, sig=2, y=1:3, u=c(0,1,1), v=c(0,2,2
   for ( pr in  Pr)
     { #print(pr)
       tem=c(tem,ar1.fun(y, u, v, s2, pr))
-    }
-                                        #res=tem*dnorm(x, mean=mu, sd=sig)  #YZ BUG dnorm  (Jun 8, 2012)
+    }                                      
   res=tem*dlnorm(x, meanlog=mu, sdlog=sig) 
-### Bug! ## mu was replaced by mean
   return(res)
 }
 
@@ -332,7 +329,7 @@ mle.ar1.non3 <- function(
       gh <- as.vector(gh)
       
       if (IPRT) {
-        cat("\n iteration",counter)
+        cat("\n\n iteration",counter)
         cat("\n The distribution of hat.g \n")
         print(summary(gh))
       }
@@ -582,7 +579,6 @@ ar1.ad.lk <- function(para=c(-0.5, -1), #c(log(alpha), logit(delta))
   sz2=th2-U
   tem=dat$ind[1:dat$np]
   sz2[tem]=th2[tem]
-                                        #Jun 25, 2012 YZ 
   if (any(sz2<=0)) return(1.e15)
 
   nllk=0
@@ -686,13 +682,12 @@ jCP.ar1=function(tpar, ## log(a),log(theta),log(delta),b0,...
                                         # parameters (obj is an output from mle.ar1.non3 or mle.ar1.fun) 
   ypre,## vector of length # pre, containing CEL
   ynew,  ## vector of length # new, containing CEL
-  y2m=NULL, #YZ add (May 28, 2012)
+  y2m=NULL, 
   XM, # matrix of covariates
-  stp,    #YZ distance between scans (May 24, 2012)
+  stp,  
   mod="G", #options for RE dist'n: G=Gamma, N=lognormal, NoN=nonparametric
   LG=FALSE,    # if T, return logit(P)
   MC=FALSE, N=40000, #Monte carlo integration 
-                                        #YZ increased default N from 10000 to 40000 (May 28, 2012)
   qfun="sum", #q function
   oth=NULL    #if mod=="NoN", oth=obj$gi
   )
@@ -709,12 +704,9 @@ jCP.ar1=function(tpar, ## log(a),log(theta),log(delta),b0,...
   if (length(tpar)>4) u=u*exp(XM%*%tpar[-(1:4)]) 
   
   if (MC)
-                                        #tem=MCCP.ar1(ypre=ypre, ynew=ynew, stp=stp, u=u, th=th, a=a, dt=dt, mod=mod, Ns=N, gh=NULL, qfun=qfun) #YZ: a bug, gh=oth (Jun 8, 2012)
     tem=MCCP.ar1(ypre=ypre, ynew=ynew, stp=stp, u=u, th=th, a=a, dt=dt, mod=mod, Ns=N, gh=oth, qfun=qfun)
-                                        #YZ add stp,y2m in MCCP.ar1 (May 28, 2012)
   else 
     tem=CP1.ar1(ypre=ypre, ynew=ynew, y2m=y2m, stp=stp, u=u, th=th, a=a, dt=dt, mod=mod, gh=oth, qfun=qfun)
-                                        #YZ add stp in CP1.ar1 (May 28, 2012)
   if (LG) tem=lgt(tem)
   return(tem)
 }
@@ -726,9 +718,9 @@ jCP.ar1=function(tpar, ## log(a),log(theta),log(delta),b0,...
                                         #CP1.ar1(ynew=c(1,0,1), mod="NoN", gh=obj$gi, qfun="max")
 CP1.ar1=function(ypre=c(0,1),
   ynew=c(1,0,1),
-  y2m=NULL,  #YZ add (May 28, 2012),
-  stp=c(0, 1, 1, 1, 1), #YZ add (May 28, 2012),
-  u=rep(1.5,5),         #YZ u=(u.ij, where u.ij=sum(b0+x.ij.k*beta.k)), (May 28, 2012)
+  y2m=NULL, 
+  stp=c(0, 1, 1, 1, 1), 
+  u=rep(1.5,5),        
   ## sn by # covariate matrix containing:
   th=3, a=0.5, dt=1/3, #parameters on the original scales
   mod="G",  #G=gamma, NoN=nonparam
@@ -753,54 +745,37 @@ CP1.ar1=function(ypre=c(0,1),
     
     n0=length(ypre)
     n1=length(ynew)
-    l1=n0+n1  #YZ add (May 24, 2012)
-
-                                        #YZ { remove (May 24, 2012)
-                                        #remove NAs in ypre 
-                                        #ms0=!is.na(ypre) ## indicator of missing values in pre scan
-                                        #y1=ypre[ms0] ## non-missing prescans
-                                        #l0=sum(ms0) ## the number of non-missing prescans
-                                        #YZ }
+    l1=n0+n1  
 
     y=c(ypre, ynew) 
-    
-                                        #YZ { remove (May 24, 2012)
-                                        # ms=!is.na(y)
-                                        #l1=sum(ms) ## the number of non-missing scans
-                                        #stp=c(0,diff((1:(n0+n1))[ms])) ## [0,rep(1,(ni*-1))] where ni* is # non-missing
-                                        #YZ }
+                           
 
     sz=u/a
     DT=dt^stp
     
                                         #parameters for ypre
-    szm=c(0, sz) #YZ change (sz[mx]->sz, May 24, 2012)
+    szm=c(0, sz) 
     szm=szm[-length(szm)]
     u=DT*szm
     v=szm-u
-    sz2=sz-u    #YZ change (sz[mx]->sz, May 24, 2012)
-
-                                        #possible combinations for ynew under q()
-                                        #y2m=getY2.1(newQ, l1-l0, qfun) #YZ remove (May 24, 2012)
-    if (is.null(y2m)) y2m=getY2.1(newQ, l1-n0, qfun) #YZ add (May 28, 2012)
+    sz2=sz-u                           #possible combinations for ynew under q()
+                                        #y2m=getY2.1(newQ, l1-l0, qfun)
+    if (is.null(y2m)) y2m=getY2.1(newQ, l1-n0, qfun) 
     ## l1-n0 = n1 # the number of new-scans
     ## newQ = q(Y_new) 
     if (mod=="G")
       { #Pr(Ypre=Ypre)
         tem=integrate(ar1.intg, lower=0, upper=Inf,  
           a_inv=ain, sh=shp, sc=th, 
-                                        # y=y1, u=u[1:l0], v=v[1:l0], s2=sz2[1:l0]) #YZ old
-          y=ypre, u=u[1:n0], v=v[1:n0], s2=sz2[1:n0]) #YZ new (May 24, 2012)
+          y=ypre, u=u[1:n0], v=v[1:n0], s2=sz2[1:n0])
         bot=tem$v
                                         #print(bot)
         tem=integrate(ar1.2.mmg, lower=0, upper=Inf, rel.tol=0.1, 
           a_inv=ain, sh=shp, sc=th, 
-                                        #y1, y2m, u=u, v=v, sz2=sz2) ####YZ old
-          y1=ypre, y2m=y2m, u=u, v=v, sz2=sz2) #YZ new (May 24, 2012)
+          y1=ypre, y2m=y2m, u=u, v=v, sz2=sz2)
         top=tem$v
                                         #print(top)
       }
-                                        #YZ { add (May 24, 2012)
     if (mod=="N") #added May 18, 2012
       {
         ## YK: June 6 {
@@ -817,13 +792,12 @@ CP1.ar1=function(ypre=c(0,1),
           y1=ypre, y2m=y2m, u=u, v=v, sz2=sz2)
         top=tem$v
       }
-                                        #YZ }
 
     if (mod=="NoN")
       { p1.non=p2.non=NULL
         for ( pr in Pr)
           { #p1=ar1.fun(y1, u[1:l0], v[1:l0], sz2[1:l0], pr)
-            p1=ar1.fun(ypre, u[1:n0], v[1:n0], sz2[1:n0], pr) #YZ l0 -> n0 (May 24, 2012)
+            p1=ar1.fun(ypre, u[1:n0], v[1:n0], sz2[1:n0], pr)
 
             p1.non=c(p1.non, p1)
             
@@ -831,8 +805,8 @@ CP1.ar1=function(ypre=c(0,1),
             for (j in 1:nrow(y2m))
               { #yy=c(y1[l0], y2m[j,]) 
                                         #p2=p2+ar22.fun(yy, u[l0:l1], v[l0:l1], sz2[l0:l1], pr) 
-                yy=c(ypre[n0], y2m[j,]) #YZ l0 -> n0 (May 24, 2012)
-                p2=p2+ar22.fun(yy, u[n0:l1], v[n0:l1], sz2[n0:l1], pr) #YZ  l0 -> n0 (May 24, 2012)
+                yy=c(ypre[n0], y2m[j,]) 
+                p2=p2+ar22.fun(yy, u[n0:l1], v[n0:l1], sz2[n0:l1], pr) 
               }
             p2.non=c(p2.non, p2*p1) 
           }
@@ -856,11 +830,8 @@ ar1.2.mmg=function(x=0.5, a_inv=2, sh=1/3, sc=3, y1=c(0,1),
   
   m=nrow(y2m)
   Pr=a_inv/(a_inv+x)
-  
-                                        #YZ { add (May 24, 2012) 
   l0=length(y1)
   l1=ncol(y2m)+l0     
-                                        #YZ }
 
   tem=NULL
   for ( pr in Pr)
@@ -868,22 +839,17 @@ ar1.2.mmg=function(x=0.5, a_inv=2, sh=1/3, sc=3, y1=c(0,1),
       
       p1=0
       for (j in 1:m)
-        {  #y=c(y1, y2m[j,])  #YZ remove (May 28, 2012)
-                                        #p1=p1+ar2.fun(y=y, U=u, V=v, sz2=sz2, pr=pr)   #YZ remove (May 28, 2012)
-          
-          y=c(y1[l0], y2m[j,])  #YZ add (May 28, 2012)
-          p1=p1+ar22.fun(y=y, U=u[l0:l1], V=v[l0:l1], sz2=sz2[l0:l1], pr=pr) #YZ add (May 28, 2012)
+        {  
+          y=c(y1[l0], y2m[j,]) 
+          p1=p1+ar22.fun(y=y, U=u[l0:l1], V=v[l0:l1], sz2=sz2[l0:l1], pr=pr) 
         }
-      p1=p1*ar1.fun(y=y1, U=u[1:l0], V=v[1:l0], sz2=sz2[1:l0], pr=pr) #YZ add (May 28, 2012)
+      p1=p1*ar1.fun(y=y1, U=u[1:l0], V=v[1:l0], sz2=sz2[1:l0], pr=pr) 
       tem=c(tem, p1)
-                                        #print(pr)
     }
   tem=tem*dgamma(x, shape=sh, scale=sc)
   return(tem)
 }
 
-                                        #YZ add May 18, 2012
-                                        # with G~lognormal for all row of y2m
 ar1.ln2.mmg=function(x=0.5, a_inv=2, mu=1/3, sig=3, y1=c(0,1), 
   y2m=getY2.1(), #a matrix, each row is a set of value for Ynew
   u=c(0,1,1,1,1), v=c(0,2,2,2,2), sz2=c(3,2,2,2,2))
@@ -899,8 +865,7 @@ ar1.ln2.mmg=function(x=0.5, a_inv=2, mu=1/3, sig=3, y1=c(0,1),
       
       p1=0
       for (j in 1:m)
-        {  #y=c(y1, y2m[j,])
-                                        #p1=p1+ar2.fun(y=y, U=u, V=v, sz2=sz2, pr=pr)   
+        {   
           y=c(y1[l0], y2m[j,])
           p1=p1+ar22.fun(y=y, U=u[l0:l1], V=v[l0:l1], sz2=sz2[l0:l1], pr=pr) 
 
@@ -913,8 +878,6 @@ ar1.ln2.mmg=function(x=0.5, a_inv=2, mu=1/3, sig=3, y1=c(0,1),
   return(tem)
 }
 
-                                        #similar to ar22.fun
-                                        #Y1=y1, Y2=y2, ..., Yn<=yn
 ar2.fun=function(y=c(0,1,3), U=c(0,1,1), V=c(0,2,2), sz2=c(3,2,2), pr=0.5)
 {  n=length(y)   
 
@@ -927,8 +890,7 @@ ar2.fun=function(y=c(0,1,3), U=c(0,1,1), V=c(0,2,2), sz2=c(3,2,2), pr=0.5)
 
    for ( i in 2:n)
      { k = 0:min(y[i], y[i-1])
-                                        #betabinomial dbb(x, N, u, v)
-                                        #source("/home/yinshan/Mydesk/Mylib/Rlib/myfun/beta-binomial.R")
+                                      
        pp=dbb(x=k, N=y[i-1], u=U[i], v=V[i])
        if (i<n) { pp=pp*dnbinom(y[i]-k, size = sz2[i], prob=pr)}
        else  { pp=pp*pnbinom(y[i]-k, size = sz2[i], prob=pr) }
@@ -959,31 +921,27 @@ ar22.fun=function(y=c(0,1,3), U=c(0,1,1), V=c(0,2,2), sz2=c(3,2,2), pr=0.5)
 
                                         #MCCP.ar1: monto carlo for conditional probability
                                         #MCCP.ar1=function(ypre, ynew, u, th, a, dt, mod="G", Ns=1000, gh=gi, qfun=sum)
-MCCP.ar1=function(ypre, ynew, stp, u, th, a, dt, mod="G", Ns=1000, gh, qfun="sum") #YZ change (May 24, 2012)
+MCCP.ar1=function(ypre, ynew, stp, u, th, a, dt, mod="G", Ns=1000, gh, qfun="sum") 
 { if (all(is.na(ynew))) return (NA)
 
   Qfun=match.fun(qfun)
   newQ=Qfun(ynew, na.rm=T)
   if (newQ==0) return(1)
-  
-                                        #YZ { add (May 24, 2012)
+
   if (newQ==1) 
     {  res=CP1.ar1(ypre=ypre, ynew=ynew, stp=stp, u=u, th=th, a=a, dt=dt, mod=mod, gh=gh,qfun=qfun)
        return(res)
      }
-                                        #YZ }
 
   ain=1/a
   if (mod=="G") shp=1/th
 
-                                        #YZ { add (May 24, 2012)
   if (mod=="N") 
     { 
       s.ln=log(th+1)   
       u.ln=-s.ln/2     
       s.ln=sqrt(s.ln)  
     }
-                                        #YZ }
 
   if (mod=="NoN") 
     { tem=sort(round(gh,6))
@@ -994,57 +952,22 @@ MCCP.ar1=function(ypre, ynew, stp, u, th, a, dt, mod="G", Ns=1000, gh, qfun="sum
   
   n0=length(ypre)
   n1=length(ynew)
-  l1=n0+n1  #YZ add (May 24, 2012)
+  l1=n0+n1  
 
-                                        #ms0=!is.na(ypre)  #YZ remove (May 24, 2012)
   sz=u/a
-                                        #YZ {remove (May 24, 2012)
-                                        #sz0=sz[1:n0]
-                                        #stp=c(0,diff((1:n0)[ms0]))
-                                        #dt0=dt^stp
-                                        #YZ }
-  dt=dt^stp #YZ add (May 24, 2012)
 
-                                        #input for ypre
-                                        #szm=c(0, sz0[ms0]) #YZ remove (May 24, 2012)
+  dt=dt^stp 
   szm=c(0, sz)
   szm=szm[-length(szm)]
-  u0=dt*szm #YZ change dt0 -> dt (May 24, 2012)
+  u0=dt*szm 
   v0=szm-u0
                                         #sz2=sz0[ms0]-u0  #YZ remove (May 24, 2012)
-  sz2=sz-u0    #YZ add May 24, 2012
-
-                                        #y-1
-                                        #Opre=list(y=ypre[ms0], u=u0, v=v0, s2=sz2) #YZ remove (May 24, 2012)
-                                        #YZ { add May 24, 2012
+  sz2=sz-u0   
   Opre=list(y=ypre, u=u0[1:n0], v=v0[1:n0], s2=sz2[1:n0])
   Onew=list(y0=ypre[n0], u=u0[-(1:n0)], v=v0[-(1:n0)], s2=sz2[-(1:n0)], n1=n1)
-                                        #YZ }
+                                        
   
-                                        #YZ {remove  May 24, 2012)
-                                        #  if (newQ==1) 
-                                        #  {  ynew[!is.na(ynew)]=0
-                                        #     y=c(ypre, ynew)
-                                        #     n01=n0+n1
-                                        #     ms01=!is.na(y) 
-                                        #     stp01=c(0,diff((1:n01)[ms01]))
-                                        #     dt01=dt^stp01
-                                        #     szm=c(0, sz[ms01])
-                                        #     szm=szm[-length(szm)]
-                                        #     u01=dt01*szm
-                                        #     v01=szm-u01
-                                        #     sz201=sz[ms01]-u01
-                                        #  }
-                                        #  else  #input for ynew
-                                        #  { l=max((1:n0)[ms0])
-                                        #    y0=ypre[l]
-                                        #    sz1=sz[l:(n0+n1)]
-                                        #    ll=(1:n1)[!is.na(ynew)]+n0-l
-                                        #  }
-                                        #YZ }
-  
-  y=c(ypre, ynew) #YZ add (May 24, 2012)
-
+  y=c(ypre, ynew) 
   if (mod=="G")
     { #Pr(Ypre=Ypre)
       tem=integrate(ar1.intg, lower=0, upper=Inf,  
@@ -1052,25 +975,14 @@ MCCP.ar1=function(ypre, ynew, stp, u, th, a, dt, mod="G", Ns=1000, gh, qfun="sum
                                         #y=ypre[ms0], u=u0, v=v0, s2=sz2) #YZ old
         y=ypre, u=u0[1:n0], v=v0[1:n0], s2=sz2[1:n0]) #YZ new (May 24, 2012)
       bot=tem$v
-      
-                                        #Pr(Ypre=ypre, Ynew+ < newSum)
 
-                                        #YZ remove (May 24, 2012)
-                                        #if (newQ==1) {  tem=integrate(ar1.intg, lower=0, upper=Inf,  
-                                        #                  a_inv=ain, sh=shp, sc=th, 
-                                        #                  y=y[ms01], u=u01, v=v01, s2=sz201) 
-                                        #bot=tem$v
-                                        #}
-                                        #else
-                                        #{ 
       tem=integrate(ar1.mmg, lower=0, upper=Inf, rel.tol=1.e-2, 
         a_inv=ain, sh=shp, sc=th, 
-                                        #O1=Opre, y0=y0, sz1=sz1, ll=ll, dt=dt, tot=newQ, N=Ns, qfun=qfun) #YZ old
         O1=Opre, O2=Onew, tot=newQ, N=Ns, qfun=qfun) #YZ new (May 24, 2012)
-                                        #} #YZ remove (May 24, 2012)
+                                      
       top=tem$v
     }
-                                        #YZ {add (May 24, 2012)
+                                       
   if (mod=="N")
     { #Pr(Ypre=Ypre)
       tem=integrate(ar1.ln.intg, lower=0, upper=Inf,  
@@ -1085,23 +997,14 @@ MCCP.ar1=function(ypre, ynew, stp, u, th, a, dt, mod="G", Ns=1000, gh, qfun="sum
       
       top=tem$v
     }
-                                        #YZ }
+                            
 
   if (mod=="NoN")
     { p1.non=p2.non=NULL
       for ( pr in Pr)
-        { #p1=ar1.fun(ypre[ms0], u0, v0, sz2, pr) #YZ old
-          p1=ar1.fun(ypre, u0, v0, sz2, pr)  #YZ new (May 24, 2012)
-                                        #YZ {remove (May 24, 2012)
-                                        #if (newQ==1)
-                                        #{ p2=ar1.fun(y[ms01], u01, v01, sz201, pr)
-                                        #} 
-                                        #else  
-                                        #{ p2=p1*mmS.fun(y0=y0, sz1=sz1, ll=ll, dt=dt, pr=pr, nSum=newSum, N=Ns, qfun=qfun)         
-                                        #}
-                                        #YZ }
-                                        #p2=p1*mmS.fun(Obj=O2, pr=pr, nSum=newSum, N=Ns, qfun=qfun) #YZ add (May 24, 2012)
-          p2=p1*mmS.fun(Obj=Onew, pr=pr, nSum=newQ, N=Ns, qfun=qfun)  #YZ bug fix, (Jun 8, 2012)
+        { 
+          p1=ar1.fun(ypre, u0, v0, sz2, pr)  
+          p2=p1*mmS.fun(Obj=Onew, pr=pr, nSum=newQ, N=Ns, qfun=qfun)
 
           p1.non=c(p1.non, p1)
           p2.non=c(p2.non, p2)
@@ -1116,35 +1019,7 @@ MCCP.ar1=function(ypre, ynew, stp, u, th, a, dt, mod="G", Ns=1000, gh, qfun="sum
 }
 
 ##Pr(q(Ynew) < nSum |y0; pr) using MC
-                                        #YZ rewrite (May 24, 2012)
-                                        #mmS.fun=function(y0=0, sz1=c(3,3,3,3), ll=1:3, dt=0.5, pr=0.5, nSum=2, N=1000, qfun="sum") #YZ old
-                                        #{
-                                        #  Qfun=match.fun(qfun)
-                                        #
-                                        #  k=length(sz1)
-                                        #  u=sz1[-k]*dt
-                                        #  v=sz1[-k]-u
-                                        #  
-                                        #  s2=sz1[-1]-u
-                                        #  Y0=y0
-                                        #
-                                        #  YY=NULL
-                                        #  for (i in 1:(k-1))
-                                        #  { z1=rbb(N, y0, u[i], v[i])
-                                        #    z2=rnbinom(N, size=s2[i], pr=pr)
-                                        #    y1=z1+z2
-                                        #    YY=cbind(YY, y1)
-                                        #    y0=y1
-                                        #  }
-                                        #  if (length(ll)>1) 
-                                        #  { tot=apply(YY[,ll], 1, Qfun) 
-                                        #  }
-                                        #  else tot=YY[,ll]
-                                        #
-                                        #  return(mean(tot<nSum))
-                                        #}
-
-                                        #YZ add (May 24, 2012)
+                                       
 mmS.fun=function(Obj=list(y0=0, u=c(1,1,1), v=c(2,2,2), s2=c(2,2,2), n1=3),
   pr=0.5, nSum=2, N=1000, qfun="sum")
 { Qfun=match.fun(qfun)
@@ -1177,9 +1052,7 @@ mmS.fun=function(Obj=list(y0=0, u=c(1,1,1), v=c(2,2,2), s2=c(2,2,2), n1=3),
 }
 
 
-## Pr(sum(Ynew) < nSum , Ypre=ypre | pr) using mmS.fun (MC)
-                                        #ar1.mmg=function(x, a_inv, sh, sc, O1, y0, sz1, ll, dt, tot, N, qfun=sum) #YZ old
-ar1.mmg=function(x, a_inv, sh, sc, O1, O2, tot, N, qfun=sum)  #YZ new (May 24, 2012)
+ar1.mmg=function(x, a_inv, sh, sc, O1, O2, tot, N, qfun=sum)  
 {  #print(x)
                                         #print(length(x))
   Pr=a_inv/(a_inv+x)
@@ -1187,9 +1060,7 @@ ar1.mmg=function(x, a_inv, sh, sc, O1, O2, tot, N, qfun=sum)  #YZ new (May 24, 2
   for ( pr in Pr)
     { #Pr(Ypre=ypre)
       p1=ar1.fun(y=O1$y, U=O1$u, V=O1$v, sz2=O1$s2, pr=pr)   
-                                        #Pr(Ynew+ < newSum |y0)
-                                        #p2=mmS.fun(y0=y0, sz1=sz1, ll=ll, dt=dt, pr=pr, nSum=tot, N=N, qfun=qfun) #YZ old
-      p2=mmS.fun(Obj=O2, pr=pr, nSum=tot, N=N, qfun=qfun) #YZ new (May 24, 2012)
+      p2=mmS.fun(Obj=O2, pr=pr, nSum=tot, N=N, qfun=qfun) 
                                         #print(c(pr, p1, p2))
       tem=c(tem,p1*p2)
     }
@@ -1197,14 +1068,13 @@ ar1.mmg=function(x, a_inv, sh, sc, O1, O2, tot, N, qfun=sum)  #YZ new (May 24, 2
   return(tem)
 }
 
-                                        #YZ add (May 24, 2012)
+                                       
 ar1.mm.ln=function(x, a_inv, sig, mu, O1, O2, tot, N, qfun=sum)
 {  Pr=a_inv/(a_inv+x)
    tem=NULL
    for ( pr in Pr)
-     { #Pr(Ypre=ypre)
+     {
        p1=ar1.fun(y=O1$y, U=O1$u, V=O1$v, sz2=O1$s2, pr=pr)   
-                                        #Pr(Ynew+ < newSum |y0)
        p2=mmS.fun(Obj=O2, pr=pr, nSum=tot, N=N, qfun=qfun)
        tem=c(tem,p1*p2)
      }
@@ -1212,17 +1082,15 @@ ar1.mm.ln=function(x, a_inv, sig, mu, O1, O2, tot, N, qfun=sum)
    return(tem)
  }
 
-## return P and s.e of logit(P); delta method
-                                        #derivative
-                                        #library(numDeriv)
+
 CP.ar1.se=function(
   tpar,
   ypre,
   ynew,
-  y2m=NULL, #YZ add (May 24, 2012)
+  y2m=NULL,
   XM, 
-                                        #see jCP.ar1
-  stp, #YZ add (May 24, 2012)
+  ## see jCP.ar1
+  stp, 
   dist="G",   # dist'n of REs G=Gamma, N =lognormal
   V,  
   mc=FALSE,       # if true use MC
@@ -1235,42 +1103,18 @@ CP.ar1.se=function(
    p=jCP.ar1(tpar=tpar,## log(a),log(theta),log(delta),b0,...
      ypre=ypre,## vector of length # pre, containing CEL
      ynew=ynew,## vector of length # new, containing CEL
-     y2m=y2m, stp=stp,  #YZ add (May 24, 2012)
+     y2m=y2m, stp=stp,
      XM=XM, mod=dist, MC=mc, qfun=qfun)
-
-                                        #logit
-                                        #YZ add (May 28, 2012)
    mth="Richardson"
    if (mc==T) mth="simple" 
-                                        #YZ}
-
-                                        #jac=jacobian(func=jCP.ar1, x=tpar, method="simple", ypre=ypre, ynew=ynew, XM=XM, mod=dist, LG=T, MC=mc, qfun=qfun)  #YZ old
-   jac=jacobian(func=jCP.ar1, x=tpar, method=mth, method.args=list(eps=0.01, d=0.01, r=2), ypre=ypre, ynew=ynew, y2m=y2m, XM=XM, stp=stp, mod=dist, LG=T, MC=mc, qfun=qfun)  #YZ new (May 24, 2012)
-                                        #YZ: try r=2 to improve speed
+                                       
+   jac=jacobian(func=jCP.ar1, x=tpar, method=mth, method.args=list(eps=0.01, d=0.01, r=2), ypre=ypre, ynew=ynew, y2m=y2m, XM=XM, stp=stp, mod=dist, LG=T, MC=mc, qfun=qfun)  
    s2=jac%*%V%*%t(jac)
    s=sqrt(s2) #s.e. of logit(P)
    return(c(p,s))
  }
 
 
-###data example 
-                                        #simulate a test dataset
-                                        #ar1.exdt=ar1.sdt(n=100)
-
-                                        #lk.exdt = input for ar1.lk
-                                        #lk.exdt=getDT(ar1.exdt[,-2])
-                                        #lk.exdt$dif=c(0,diff(ar1.exdt[,2]))
-                                        #lk.exdt$dif[lk.exdt$ind]=0
-                                        #lk.exdt$dif=lk.exdt$dif[1:lk.exdt$totN]
-
-                                        #ar1.fit=mle.ar1.fun(dat=ar1.exdt, p.ini=c(-0.3, 1.1, -0.1, 0.4), IPRT=T, model="G")
-                                        #simulate test
-                                        #sdt=ar1.sdt(n=200)
-                                        #sdt.non=ar1.sdt(tpar=an5.ar1.non$est[1:4], mod="Non", gi=an5.ar1.non$gi, n=5)
-                                        #mle.ar1.fun(dat=sdt, p.ini=c(-0.4, 1, -0.15, 0.51), IPRT=T, model="G", FixN=5)
-
-######other functions
-                                        #beta-binomial prob, cpf, random 
 dbb <- function(x, N, u, v) {
   beta(x+u, N-x+v)/beta(u,v)*choose(N,x)
 }

@@ -29,7 +29,8 @@ See Zhao et al., for more details.
 
 
 \usage{
-index.batch(data,labelnp, ID, Vcode,olmeNB,subset=NULL, qfun = "sum", IPRT = TRUE,  i.se = TRUE, iMC = FALSE)	
+index.batch(data,labelnp, ID, Vcode,olmeNB,subset=NULL, 
+            qfun = "sum", IPRT = TRUE,  i.se = TRUE, iMC = FALSE)	
 }
 
 
@@ -100,8 +101,7 @@ The \emph{N} by 4 (3, if hide the SE) numeric matrix, containing the point estim
 }
 
 \references{
- Zhao, Y., Li, D.K.B., Petkau, A.J., Riddehough, A. & Traboulsee, A.  Detection of unusually large increases in 
-MRI lesion counts in multiple sclerosis patients.
+Zhao, Y., Li, D.K.B., Petkau, J.A., Riddehough, A. & Traboulsee, A.  Detection of unusual increases in MRI lesion counts in multiple sclerosis patients.
 }
 \author{
  Zhao, Y. and Kondo, Y.

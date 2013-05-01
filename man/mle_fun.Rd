@@ -139,8 +139,7 @@ If \code{model="N"} then \code{mod="N"}.
 }
 
 \references{
- Zhao, Y., Li, D.K.B., Petkau, J.A., Riddehough, A. & Traboulsee, A.  Detection of unusually large increases in 
-MRI lesion counts in multiple sclerosis patients.
+Zhao, Y., Li, D.K.B., Petkau, J.A., Riddehough, A. & Traboulsee, A.  Detection of unusual increases in MRI lesion counts in multiple sclerosis patients.
 }
 \author{
  Zhao, Y. and Kondo, Y.
@@ -209,20 +208,24 @@ logitd = -0.5
 ## ================================================================================ ##
 
 
-## [1]: Fit the negative binomial independent model where the random effects are from the gamma distribution. This is the true model.
+## [1]: Fit the negative binomial independent model 
+## where the random effects are from the gamma distribution. This is the true model.
 ## This is the true model
 
 re.gamma.ind=mle.fun(formula=CEL~1,data=dt1,ID=ID,model="G", 
 	             p.ini=c(loga,logtheta,b0),IPRT=TRUE)
-## compute the estimates of the conditional probabilities with sum of the new repeated measure as a summary statistics 
+## compute the estimates of the conditional probabilities 
+## with sum of the new repeated measure as a summary statistics 
 Psum=index.batch(olmeNB=re.gamma.ind, ID=ID,data=dt1,
                  labelnp=new,qfun="sum", IPRT=TRUE) 
 
-## compute the estimates of the conditional probabilities with max of the new repeated measure as a summary statistics 
+## compute the estimates of the conditional probabilities 
+## with max of the new repeated measure as a summary statistics 
 Pmax=index.batch(olmeNB=re.gamma.ind, ID=ID,data=dt1,
                  labelnp=new,qfun="max", IPRT=TRUE)
 
-## Which patient's estimated probabilities based on the sum and max statistics disagrees the most?
+## Which patient's estimated probabilities 
+## based on the sum and max statistics disagrees the most?
 ( IDBigDif <- which(rank(abs(Pmax$condProbSummary[,1]-Psum$condProbSummary[,1]))==80) )
 ## Show the patient's CEL counts  
 dt1$CEL[ID==IDBigDif]
@@ -233,7 +236,8 @@ Pmax$condProbSummary[IDBigDif,]
 
 
 
-## [2]: Fit the negative binomial independent model where the random effects are from the lognormal distribution. 
+## [2]: Fit the negative binomial independent model 
+## where the random effects are from the lognormal distribution. 
 re.logn.ind=mle.fun(formula=CEL~1,data=dt1,ID=ID, 
                    model="N", 			   	
 		   p.ini=c(loga,logtheta,b0), 		
@@ -254,11 +258,13 @@ Psum=index.batch(olmeNB=re.semi.ind,ID=ID,data=dt1,
 
 
 
-## [4]: Fit the negative binomial mixed-effect AR(1) model where random effects are from the gamma distribution
+## [4]: Fit the negative binomial mixed-effect AR(1) model 
+## where random effects are from the gamma distribution
 
 
 re.gamma.ar1=mle.ar1.fun(formula=CEL~1,data=dt1,ID=ID,
-		      p.ini=c(loga,logtheta,logitd,b0), ## log(a), log(theta), logit(d), b0
+		      p.ini=c(loga,logtheta,logitd,b0), 
+		      ## log(a), log(theta), logit(d), b0
 		       model="G", Vcode=Vcode,
 		      IPRT=TRUE)
 

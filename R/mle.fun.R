@@ -1,6 +1,6 @@
 
 
-lmeNB <- function(formula,data,ID,p.ini=NULL,IPRT=FALSE,AR=FALSE,RE=c("G","N","semipara"),deps=1e-04,Vcode,
+lmeNB <- function(formula,data,ID,p.ini=NULL,IPRT=FALSE,AR=FALSE,RE=c("G","N","semipara"),deps=1e-03,Vcode,
                   i.tol=1e-75,
                   o.tol=1.e-3,
                   maxit=100)
@@ -10,6 +10,7 @@ lmeNB <- function(formula,data,ID,p.ini=NULL,IPRT=FALSE,AR=FALSE,RE=c("G","N","s
     ## mle.a3.fun
     ## mle.ar1.fun
     ## mle.ar1.non3
+    if (length(RE)>1) RE <- RE[1]
     if (!AR){
       
       if (RE=="G" || RE == "N"){
@@ -29,7 +30,7 @@ lmeNB <- function(formula,data,ID,p.ini=NULL,IPRT=FALSE,AR=FALSE,RE=c("G","N","s
                             ))
       }else if (RE=="semipara"){
         return(mle.ar1.non3(formula=formula, data=data, ID=ID, Vcode=Vcode,
-                            p.ini = p.ini, IPRT = IPRT, deps = 0.001, maxit=maxit))
+                            p.ini = p.ini, IPRT = IPRT, deps = deps, maxit=maxit))
       }else{
         stop("RE must be G, N or semipara!!")
       }
@@ -88,7 +89,7 @@ mle.fun <-
   p.est <- cbind(tt$p, sqrt(diag(vcm)))
   row.names(p.est) <- rownames(vcm)<-colnames(vcm)<- c("log_a", "log_th", "(Intercept)", DT$xnames)
   colnames(p.est) <- c("estimate","SE")
-  dat[,1] <- ID ## get the original ID.
+  
   re <- list(call=cmd, p.ini=p.ini,opt=tt,formula=formula,
              nlk=nlk, V=vcm, est=p.est, mod=model, ##idat=data.frame(dat),
              cor="ind")
@@ -113,7 +114,10 @@ print.LinearMixedEffectNBFreq <- function(x,...)
     crit <- qnorm(0.975)
     if (x$mod != "NoN")
       {
-        printForm <- cbind(x$est,x$est[,1]-crit*x$est[,2],x$est[,1]+crit*x$est[,2])
+        printForm <- data.frame(cbind(sprintf("%1.3f",x$est[,1]),sprintf("%1.3f",x$est[,2]),
+                                     sprintf("%1.3f",x$est[,1]-crit*x$est[,2]),
+                                     sprintf("%1.3f",x$est[,1]+crit*x$est[,2])))
+        rownames(printForm) <-rownames(x$est)
         colnames(printForm) <-c("Value","Std.Error","lower CI","upper CI")
       }else{
         printForm <- x$est
@@ -128,18 +132,8 @@ print.LinearMixedEffectNBFreq <- function(x,...)
 
 
 formulaToDat <-
-function(formula, data, ID) 
+function(formula, data, ID,labelnp=NULL) 
 {
-    ## mf <- match.call(expand.dots = FALSE)
-    ## m <- match(c("formula", "data"), names(mf), 0L)
-    ## mf <- mf[c(1L, m)]
-    ## mf$drop.unused.levels <- TRUE
-    ## mf[[1L]] <- as.name("model.frame")
-    ## mf <- eval(mf, parent.frame())
-    ## y <- model.response(mf, "numeric")
-    ## mt <- attr(mf, "terms")
-    ## datamatrix <- model.matrix(mt, mf, contrasts)
-
 
   datamatrix <- model.matrix(object=formula,data=data)
   covNames <- colnames(datamatrix)
@@ -149,18 +143,39 @@ function(formula, data, ID)
     }else{
       stop("A model without an intercept term is not accepted!!")
     }
-  y <- model.response(model.frame(formula=formula,data=data))
+  y <- model.response(model.frame(formula=formula,data=data,na.action=na.omit))
+
+  ## Update ID so that length(ID) = nrow(datamatrix) 
+  formulaID <- update(formula,    ~ . + ID)
+  dataID <- data; dataID$ID <- ID ## missing values in ID is not accepted! ID must be the same length as the n row of dataframe
+  datamatrixID <- model.matrix(object=formulaID,data=dataID)
+  upID <- datamatrixID[,colnames(datamatrixID)=="ID"] ## Updated ID does not have ID of missing observations
   ## If ID is a character vector of length sum ni,
   ## it is modified to an integer vector, indicating the first appearing patient
   ## as 1, the second one as 2, and so on..
-  temID <- ID  
-  uniID <- unique(temID)
-  ID <- rep(NA,length(temID))
+   
+  uniID <- unique(upID)
+  ID <- rep(NA,length(upID))
   for (i in 1 : length(uniID))
     {
-      ID[temID == uniID[i]] <- i
+      ID[upID == uniID[i]] <- i
+
+      s <- sum(upID == uniID[i])
+      for (j in 1 : s )
+        upID[upID == uniID[i]] <- paste(uniID[i],1:s,sep="--")
     }
-  return(cbind(ID=ID,CEL=y,datamatrix))
+  dat <- cbind(ID=ID,CEL=y,datamatrix)
+  rownames(dat) <- upID
+
+  if (! is.null(labelnp)){
+    formulalnp <- update(formula, ~.+labelnp)
+    datalnp <- data
+    datalnp$labelnp <- labelnp
+    mm <- model.matrix(object=formulalnp,data=datalnp)
+    labelnp <- mm[,colnames(mm)=="labelnp"]
+    return(list(dat=dat,labelnp=labelnp))
+  }
+  return(dat) #dat=(ID, Y, x1, x2, ...)
 }
 
 getDT <- function(dat)             #dat=(ID, Y, x1, x2, ...)
@@ -198,35 +213,36 @@ function(x)
  }
 
 
+## Likelihood function for gamma random effect model
 lk.fun <-
-  function(para, # parameters (log(a), log(th), b0, b1, ...) 
-           dat,  # dat=list(id=ID, y=ydat, x=xdat, cn=ncov, 
-                                        # ys=Ysum, np=N, totN=totN, ni=Ni, ind=IND)
-                                        # output of getDT()
-           Iprt=F, #printing control 
+  function(para, ## parameters (log(a), log(th), b0, b1, ...) 
+           dat,  ## dat=list(id=ID, y=ydat, x=xdat, cn=ncov, 
+           ##                ys=Ysum, np=N, totN=totN, ni=Ni, ind=IND)
+           ## output of getDT()
+           Iprt=FALSE, #printing control 
            tol=1.e-75, #control parameter for integration 
            sig=FALSE # if T, compute the full likelihood 
                                         #(i.e., with the constant)
            )
 { if (Iprt) cat(para)
-  a=exp(para[1])
-  th1=exp(para[2]) #scale
-  ainv=1/a  
-  shp=1/th1
+  a <- exp(para[1])
+  th1 <- exp(para[2]) #scale
+  ainv <- 1/a  
+  shp <- 1/th1
 
-  u0=exp(para[3])
-  th2=rep(u0/a, dat$totN)
+  u0 <- exp(para[3])
+  th2 <- rep(u0/a, dat$totN)
   if (dat$cn>0) {
     ## if there are covariates
-    b=para[4:(dat$cn+3)]
-    tem=exp(dat$x%*%b)
-    th2=tem*th2 ## th2 = r_{ij}=exp(X^T beta)/a: Y_{ij}|G_i=gi ~NB(r_{ij},p_i)
+    b <- para[4:(dat$cn+3)]
+    tem <- exp(dat$x%*%b)
+    th2 <- tem*th2 ## th2 = r_{ij}=exp(X^T beta)/a: Y_{ij}|G_i=gi ~NB(r_{ij},p_i)
   }
   ## -loglikelihood
   ## constant terms of - loglikelihood
-  nllk=sum( - lgamma(dat$y+th2) + lgamma(th2))
-  us=tapply(th2, dat$id, sum)
-  lk=rep(0, dat$np)
+  nllk <- sum( - lgamma(dat$y+th2) + lgamma(th2))
+  us <- tapply(th2, dat$id, sum)
+  lk <- rep(0, dat$np)
   for (i in 1:dat$np)
     { tem=integrate(int.fun, lower=0, upper=Inf, a_inv=ainv, abs.tol=tol,
        ## dat$ys[i] = sum(y_{ij},j=1,...,ni)
@@ -246,11 +262,11 @@ lk.fun <-
 
 int.fun <-
 function(x=2, # value of G 
-                 a_inv=0.5,  # a_inv=1/a
-                 sh=0.5, sc=2, #shape and scale; sh=1/th; sc=th to have E(G_i)=scale*shape=1
-                 ysum=2, #sum(y.ij,j=1,..,ni); ysum is a number
-                 usum=3  #sum(u.ij/a,j=1,...,ni); usum is a number
-                )
+         a_inv=0.5,  # a_inv=1/a
+         sh=0.5, sc=2, #shape and scale; sh=1/th; sc=th to have E(G_i)=scale*shape=1
+         ysum=2, #sum(y.ij,j=1,..,ni); ysum is a number
+         usum=3  #sum(u.ij/a,j=1,...,ni); usum is a number
+         )
   ## note p=1-p
 {   p=x/(x+a_inv)  
     tem=p^ysum*(1-p)^usum*dgamma(x, shape=sh, scale=sc)
@@ -276,7 +292,7 @@ function(gi, new=T, cl=1)
 ## ========= log-normal random effects =========
 lk.ln.fun <-
 function(para, dat, Iprt=F, tol=1e-75)
-{ ## if (Iprt) cat(para)
+{ if (Iprt) cat("\n",para)
   
   a=exp(para[1])
   th1=exp(para[2]) #scale
@@ -304,6 +320,6 @@ function(para, dat, Iprt=F, tol=1e-75)
      #print(c(dat$ys[i], us[i], tem$v))
      nllk = nllk - log(tem$v)
    }
-   ## if (Iprt) cat(" nllk=", nllk, "\n")
+    if (Iprt) cat(" nllk=", nllk)
    return(nllk)
 }

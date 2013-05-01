@@ -142,8 +142,7 @@ If \code{model="N"} then \code{mod="N"}.
 }
 
 \references{
- Zhao, Y., Li, D.K.B., Petkau, A.J., Riddehough, A. & Traboulsee, A.  Detection of unusually large increases in 
-MRI lesion counts in multiple sclerosis patients.
+Zhao, Y., Li, D.K.B., Petkau, J.A., Riddehough, A. & Traboulsee, A.  Detection of unusual increases in MRI lesion counts in multiple sclerosis patients.
 }
 \author{
  Zhao, Y. and Kondo, Y.
@@ -176,13 +175,14 @@ The functions to generate simulated datasets:
 \examples{
 \dontrun{
 
-## ==========================================================================================
+## ==================================================================================
 ## generate a data based on the negative binomial mixed-effect AR(1) model.
 ## Under this model, the response counts follows the negative binomial:
 ## Y_ij | G_i = g_i ~ NB(r_ij,p_i) where r_ij = exp(X^T beta)/a , p_i =1/(a*g_i+1)
 ## with G_i ~ Gamma(scale=th,shape=1/th)
 ## 
-## The adjacent repeated measures of the same subject are correlated with correlation structure:
+## The adjacent repeated measures of the same subject are correlated 
+## with correlation structure:
 ## cov(Y_ij,Y_ij'|G_i=g_i)=d^{j-j'} E(Y_ij')*(a*g_i^2+g_i)  
 
 # log(a) = -0.5, log(th)=1.3, logit(delta) = -0.2
@@ -210,28 +210,34 @@ ID = DT2$id
 new = Vcode > 0
 dt2=data.frame(CEL=DT2$y)
 
-## ==========================================================================================
+## ================================================================================
 
-## 1) Fit the negative binomial mixed-effect AR(1) model where the random effects are from the gamma distribution
+## 1) Fit the negative binomial mixed-effect AR(1) model 
+## where the random effects are from the gamma distribution
 ## This is the true model
 
 re.gamma.ar1=mle.ar1.fun(formula=CEL~1,data=dt2,ID=ID,
 		      Vcode=Vcode, 
-		      p.ini=c(loga,logtheta,logitd,b0), ## log(a), log(theta), logit(d), b0
+		      p.ini=c(loga,logtheta,logitd,b0), 
+		      ## log(a), log(theta), logit(d), b0
 		       model="G", 
 		      IPRT=TRUE) 
 
 
 
-## compute the estimates of the conditional probabilities with sum of the new repeated measure as a summary statistics 
+## compute the estimates of the conditional probabilities 
+## with sum of the new repeated measure as a summary statistics 
 Psum=index.batch(olmeNB=re.gamma.ar1,data=dt2,ID=ID,Vcode=Vcode,
 		 labelnp=new,qfun="sum", IPRT=TRUE,i.se=FALSE)  
 		 
 
-## compute the estimates of the conditional probabilities with max of the new repeated measure as a summary statistics 
-Pmax=index.batch(olmeNB=re.gamma.ar1,data=dt2,ID=ID,Vcode=Vcode, labelnp=new,qfun="max", IPRT=TRUE)
+## compute the estimates of the conditional probabilities 
+## with max of the new repeated measure as a summary statistics 
+Pmax=index.batch(olmeNB=re.gamma.ar1,data=dt2,ID=ID,Vcode=Vcode, 
+                 labelnp=new,qfun="max", IPRT=TRUE)
 
-## Which patient's estimated probabilities based on the sum and max statistics disagrees the most?
+## Which patient's estimated probabilities based on the sum and max 
+## statistics disagrees the most?
 ( IDBigDif <- which(rank(abs(Pmax$condProbSummary[,1]-Psum$condProbSummary[,1]))==80) )
 ## Show the patient's CEL counts  
 dt2$CEL[ID==IDBigDif]
@@ -241,22 +247,26 @@ Psum$condProbSummary[IDBigDif,]
 Pmax$condProbSummary[IDBigDif,]
 
 
-## 2) Fit the negative binomial mixed-effect AR(1) model where random effects is from the log-normal distribution
+## 2) Fit the negative binomial mixed-effect AR(1) model 
+## where random effects is from the log-normal distribution
 
 re.logn.ar1=mle.ar1.fun(formula=CEL~1,data=dt2,ID=ID,
 		      Vcode=Vcode, 
-		      p.ini=c(loga,logtheta,logitd,b0), ## log(a), log(theta), logit(d), b0
+		      p.ini=c(loga,logtheta,logitd,b0), 
+		      ## log(a), log(theta), logit(d), b0
 		       model="N", 
 		      IPRT=TRUE)
 
 ## Require some time
-Psum=index.batch(olmeNB=re.logn.ar1,data=dt2,ID=ID,Vcode=Vcode, labelnp=new,qfun="sum", IPRT=TRUE,i.se=TRUE) 
+Psum=index.batch(olmeNB=re.logn.ar1,data=dt2,ID=ID,Vcode=Vcode, 
+                 labelnp=new,qfun="sum", IPRT=TRUE,i.se=TRUE) 
 re.logn.ar1$Psum=Psum
 
 
 
 
-## 3) Fit the negative binomial independent model where random effects are from the gamma distribution
+## 3) Fit the negative binomial independent model 
+## where random effects are from the gamma distribution
 re.gamma.ind=mle.fun(formula=CEL~1,data=dt2,ID=ID, 
                    model="G", 
 		   p.ini=c(loga,logtheta,b0), 
@@ -268,7 +278,8 @@ Psum=index.batch(olmeNB=re.gamma.ind,data=dt2,ID=ID,
 
 
 
-## 4) Fit the negative binomial independent model where random effects are from the lognormal distribution
+## 4) Fit the negative binomial independent model 
+## where random effects are from the lognormal distribution
 re.logn.ind=mle.fun(formula=CEL~1,data=dt2,ID=ID, 
                    model="N", 			   	
 		   p.ini=c(loga,logtheta,b0), 		
@@ -282,16 +293,20 @@ Psum=index.batch(olmeNB=re.logn.ind, data=dt2,ID=ID,
 
 logvarG = -0.5
 
-re.semi.ar1=mle.ar1.non3(formula=CEL~1,data=dt2,ID=ID, p.ini=c(loga, logvarG, logitd,b0),Vcode=Vcode)
+re.semi.ar1=mle.ar1.non3(formula=CEL~1,data=dt2,ID=ID, 
+                         p.ini=c(loga, logvarG, logitd,b0),Vcode=Vcode)
 
 Psum=index.batch(olmeNB=re.semi.ar1,data=dt2,ID=ID, Vcode=Vcode,
-		 labelnp=new,qfun="sum", IPRT=TRUE,i.se=FALSE)  ## No option of i.se=TRUE
+		 labelnp=new,qfun="sum", IPRT=TRUE,i.se=FALSE)  
+## No option of i.se=TRUE
 
 
 
 ## 6) Fit the semi-parametric negative binomial independent model 
 re.semi.ind=mle.a3.fun(formula=CEL~1,data=dt2,ID=ID, p.ini=c(loga, logvarG, b0))
-Psum=index.batch(olmeNB=re.semi.ind,data=dt2,ID=ID,  labelnp=new, qfun="sum", IPRT=TRUE,i.se=FALSE) ## No option of i.se=TRUE
+Psum=index.batch(olmeNB=re.semi.ind,data=dt2,ID=ID,  
+                 labelnp=new, qfun="sum", IPRT=TRUE,i.se=FALSE) 
+## No option of i.se=TRUE
 
 
 
@@ -359,52 +374,3 @@ getpoints(1,estb0s[6])
 \keyword{ ~kwd1 }
 \keyword{ ~kwd2 }% __ONLY ONE__ keyword per line
 
-
-
-%This function fits a negative binomial mixed-effect AR(1) model in the formulation described Zhao et al.
-%
-%Denote a repeated measure from a subject \emph{i} at time point \emph{j} as \emph{Y_ij} where \emph{i=1,...,N,j=1,...,n_i}.
-%
-%The model assumes that the repeated measure at time point \emph{1} given the subject specific random effect \emph{G_i=g_i} to follow the negative binomial distribution:
-%
-
-%\emph{Y_i1| G_i=g_i ~ NB(r_i1,p_i),} 
-
-%where the failure probability \emph{ p_i } at each time point \emph{j} of subject \emph{i} is parametrized as: 
-
-
-%\emph{ p_i= 1/(g_i*a+1),}  
-
-
-%and \emph{ a > 0 }.
-%
-%For \emph{j > 1}, the model assumes the first-order Markov chain:
-%
-
-%\emph{ Y_ij = Z(Y_i(j-1),d) + e_ij, }
-
-%
-%with \emph{0 < delta < 1} and \emph{r_ij-d*r_i(j-1) > 0}.
-% 
-%Given Y_i(j-1) and d, Z is from the beta binomial distribution:
-
-
-%\emph{ Z(Y_i(j-1),d) ~ betabinom(n=Y_i(j-1),alpha=d*r_i,(j-1),beta=(1-delta)*r_i(j-1))} 
-
-
-%and \emph{e_ij} is distributed as the negative binomial. 
-
-
-%\emph{e_ij ~ NB(r_ij-d*r_i(j-1),p)i)}
-
-
-%These assumptions lead that the response counts to be from \emph{ Y_ij | G_i =g_i ~ NB(r_ij,p_i)} as the independence model (\code{\link{mle.fun}}) and \emph{Y_ij} is conditionally independent on \emph{Y_ij'} given \emph{Y_i(j-1)} for all \emph{j' < j-1 }.
-
-
-%Finally, the parameter \emph{d} can be interpreted as a measure of associations between repeated measures of a subject: the larger \emph{d}, the stronger the positive correlations are.
-%This interpretation depends on the result:
-% \emph{cov(Y_ij,Y_ij'|G_i=g_i)=d^{j-j'} E(Y_ij')*(a*g_i^2+g_i)},
-
-
-
-%The distributional assumptions on \emph{G_i} are the same as the independent model. See \code{\link{mle.fun}} for details.

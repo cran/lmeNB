@@ -164,8 +164,7 @@ A vector of length \emph{N}, containing the approximation of \emph{g_i}s
 }
 
 \references{
- Zhao, Y., Li, D.K.B., Petkau, A.J., Riddehough, A. & Traboulsee, A.  Detection of unusually large increases in 
-MRI lesion counts in multiple sclerosis patients.
+Zhao, Y., Li, D.K.B., Petkau, J.A., Riddehough, A. & Traboulsee, A.  Detection of unusual increases in MRI lesion counts in multiple sclerosis patients.
 }
 \author{
  Zhao, Y. and Kondo, Y.
@@ -200,13 +199,16 @@ The functions to generate simulated datasets:
 
 \dontrun{
 ## ================================================================================ ##
-## generate a data based on the semi-parametric negative binomial mixed-effect AR(1) model.
+## generate a data based on the semi-parametric negative binomial 
+## mixed-effect AR(1) model.
 ## Under this model, the response counts follows the negative binomial:
 ## Y_ij | G_i = g_i ~ NB(r_ij,p_i) where r_ij = exp(X^T beta)/a , p_i =1/(a*g_i+1)
 ## G_i is from unknown distribution.
-## For simulation purpose, we generate the sample of gi from the mixture of three gamma distribuions.
+## For simulation purpose, we generate the sample of gi from 
+## the mixture of three gamma distribuions.
 
-## The adjacent repeated measures of the same subjects are correlated with correlation structure:
+## The adjacent repeated measures of the same subjects are correlated 
+## with correlation structure:
 ## cov(Y_ij,Y_ij'|G_i=g_i)=d^{j-j'} E(Y_ij')*(a*g_i^2+g_i)  
 
 # log(a) = -0.5, log(th)=1.3, logit(delta) = -0.2
@@ -250,12 +252,14 @@ new = Vcode > 0
 dt4=data.frame(CEL=DT4$y)
 ## ================================================================================ ##
 
-## [1] Fit the negative binomial mixed-effect AR(1) model where random effects is from the gamma distribution
+## [1] Fit the negative binomial mixed-effect AR(1) model 
+## where random effects is from the gamma distribution
 
 
 re.gamma.ar1=mle.ar1.fun(formula=CEL~1,data=dt4,ID=ID,
 		      Vcode=Vcode, 
-		      p.ini=c(loga,logtheta,logitd,b0), ## log(a), log(theta), logit(d), b0
+		      p.ini=c(loga,logtheta,logitd,b0), 
+		      ## log(a), log(theta), logit(d), b0
 		       model="G", 
 		      IPRT=TRUE)
 
@@ -264,12 +268,14 @@ Psum=index.batch(olmeNB=re.gamma.ar1, data=dt4,ID=ID,Vcode=Vcode,
 
 
 
-## [2] Fit the negative binomial mixed-effect AR(1) model where random effects is from the log-normal distribution
+## [2] Fit the negative binomial mixed-effect AR(1) model 
+## where random effects is from the log-normal distribution
 
 
 re.logn.ar1=mle.ar1.fun(formula=CEL~1,data=dt4,ID=ID,
 		      Vcode=Vcode, 
-		      p.ini=c(loga,logtheta,logitd,b0), ## log(a), log(theta), logit(d), b0
+		      p.ini=c(loga,logtheta,logitd,b0), 
+		      ## log(a), log(theta), logit(d), b0
 		       model="N", 
 		      IPRT=TRUE)
 \dontrun{
@@ -279,7 +285,8 @@ Psum=index.batch(olmeNB=re.logn.ar1,data=dt4,ID=ID,Vcode=Vcode,
 }
 
 
-## [3] Fit the negative binomial independent model where random effects is from the lognormal distribution
+## [3] Fit the negative binomial independent model 
+## where random effects is from the lognormal distribution
 re.logn.ind=mle.fun(formula=CEL~1,data=dt4,ID=ID, 
                    model="N", 			   	
 		   p.ini=c(loga,logtheta,b0), 		
@@ -294,17 +301,21 @@ Psum=index.batch(olmeNB=re.logn.ind,data=dt4,ID=ID,
 
 logvarG = log(var(sampledG))
 
-re.semi.ar1=mle.ar1.non3(formula=CEL~1,data=dt4,ID=ID, p.ini=c(loga, logvarG, logitd,b0),Vcode=Vcode)
+re.semi.ar1=mle.ar1.non3(formula=CEL~1,data=dt4,ID=ID, 
+                        p.ini=c(loga, logvarG, logitd,b0),Vcode=Vcode)
 
-## compute the estimates of the conditional probabilities with sum of the new repeated measure as a summary statistics 
+## compute the estimates of the conditional probabilities 
+## with sum of the new repeated measure as a summary statistics 
 Psum=index.batch(olmeNB=re.semi.ar1, labelnp=new,data=dt4,ID=ID,Vcode=Vcode,
                  qfun="sum", IPRT=TRUE,i.se=TRUE) 
 
-## compute the estimates of the conditional probabilities with max of the new repeated measure as a summary statistics 
+## compute the estimates of the conditional probabilities 
+## with max of the new repeated measure as a summary statistics 
 Pmax=index.batch(olmeNB=re.semi.ar1, labelnp=new,qfun="max",data=dt4,ID=ID,Vcode=Vcode,
                  IPRT=TRUE,i.se=TRUE) 
 
-## Which patient's estimated probabilities based on the sum and max statistics disagrees the most?
+## Which patient's estimated probabilities 
+## based on the sum and max statistics disagrees the most?
 ( IDBigDif <- which(rank(abs(Pmax$condProbSummary[,1]-Psum$condProbSummary[,1]))==80) )
 ## Show the patient's CEL counts  
 dt4$CEL[ID==IDBigDif]
@@ -318,7 +329,8 @@ Pmax$condProbSummary[IDBigDif,1]
 
 
 re.semi.ind=mle.a3.fun(formula=CEL~1,data=dt4,ID=ID, p.ini=c(loga, logvarG, b0))
-Psum=index.batch(olmeNB=re.semi.ind, labelnp=new,data=dt4,ID=ID, qfun="sum", IPRT=TRUE,i.se=TRUE) 
+Psum=index.batch(olmeNB=re.semi.ind, labelnp=new,
+                 data=dt4,ID=ID, qfun="sum", IPRT=TRUE,i.se=TRUE) 
 
 
 

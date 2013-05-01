@@ -12,17 +12,6 @@ function(x=2, a_inv=0.5, y1=2, y2=2, u1=3, u2=3,
 }
 
 
-cum1.ln <-
-function( x=2, #value of the random effect
-                  a_inv=0.5,             # 1/a
-                  sh=0.5, sc=2,          # lnorm paramters, sc=s=sqrt(log(Th+1)), sh = u = -s^2/2 
-                  y1=2, y2=2, u1=3, u2=3 #see cum.fun
-                )
-{   p=x/(x+a_inv)  
-    tem=p^y1*(1-p)^u1*dlnorm(x, meanlog=sh, sdlog=sc)
-    tem=tem*pnbinom(y2-1, prob=1-p, size=u2)
-    return(tem)
-}
 
 
 cum1.uf <-

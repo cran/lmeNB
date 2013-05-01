@@ -4,30 +4,33 @@ index.batch <- function(
                         ID,
                         Vcode,
                         olmeNB=NULL, #model fit,
-                        subset=NULL, ## YZ add (May 29, 2012)
+                        subset=NULL, 
                         ## compute the index for a subset of patients when subset = a vector of patient ids.
                         ## by default (subset=NULL), compute the index for all patients.
                         ## The indecies of ID must agree to the indices of idat0$ID, returned from olmeNB 
                         qfun="sum", # sum or max
                         IPRT=TRUE, #print control
-                        i.se=TRUE, #YZ option for computing SE and CI (May 30, 2012)
-                                        #xm0=as.matrix(c(0,0,1,1,1)), #YZ remove (May 24, 2012)
+                        i.se=TRUE, 
                         iMC=FALSE #for ar1 only
                         ## If olmeNB  ==  NULL then this is required
                         ){
-
-  fulldata0 <- data.frame(formulaToDat(formula=olmeNB$formula,data=data,ID=ID))  # dat = (ID, Y, x1, x2, ...) numeric matrix
+  if (nrow(data) !=length(labelnp))stop("the length of labelnp does not agree with the length of ID")
+  ## If the labelnp is TRUE/FALSE then the following code change them to 1/0
+  ## If the labelnp is 1/0 then the following code keep them as 1/0
+  labelnp[labelnp] <- 1; labelnp[labelnp] <- 0
+  
+  ftd <- formulaToDat(formula=olmeNB$formula,data=data,ID=ID,labelnp=labelnp)
+  fulldata0 <- data.frame(ftd$dat)  # dat = (ID, Y, x1, x2, ...) numeric matrix
+  labelnp <- ftd$labelnp
   if (olmeNB$cor != "ar1") Vcode <- rep(NA,length(fulldata0$ID))
   fulldat <- data.frame(ID=fulldata0$ID,Vcode=Vcode,CEL=fulldata0$CEL)
   ## If there is covariate, then add them in idat
   if (ncol( fulldata0 ) > 2) fulldat <- data.frame(fulldat,x=fulldata0[,3:ncol(fulldata0)])
   ## idat = dataframe(ID, Vcode, CEL, x.1, x.2, ...)
 
+  if (is.null(subset)) id <- unique(fulldat$ID)  else id <- subset
   
-  if (length(fulldat$ID) != length(labelnp)) stop("the length of labelnp does not agree with the length of fulldata0$ID")
-  if (is.null(subset)) id <- unique(fulldat$ID)  else id = subset
-  
-  est <- as.data.frame(olmeNB$est)[,1] #YZ change olmeNB$est to est (May 30, 2012)
+  est <- as.data.frame(olmeNB$est)[,1] 
   n <- length(id)
   ## PP is output of this function
   PP <- matrix(NA, nrow=n, ncol=4)
@@ -45,7 +48,7 @@ index.batch <- function(
       ilabelnp=labelnp[fulldat$ID==i]
       
       if (! (1 %in% ilabelnp)) next  ## next if no new scans
-      if (! (0 %in% ilabelnp)) next   ## next if no old scans
+      ##if (! (0 %in% ilabelnp)) next   ## next if no old scans !!!!!!CAUSUE problem for AR/semipara.
 
       xm <- NULL
       if ( ncol(idat)>3) xm <- as.matrix(idat[,-c(1:3)])
@@ -62,8 +65,7 @@ index.batch <- function(
           sn1 <- sum(ilabelnpTF)        ## number of pre scans
           sn2 <- sum(!ilabelnpTF)       ## number of new scans
 
-          if (olmeNB$mod == "NoN"|i.se == FALSE) #YZ (add i.se, May 30, 2012)
-            {
+          if (olmeNB$mod == "NoN"|i.se == FALSE) {
               ## If nonparametric method is used for the random effects
               tem <- jCP(tpar=est, Y1=Y1, Y2=Y2, sn1=sn1, sn2=sn2, 
                          XM=xm, dist=olmeNB$mod, type=qfun, oth=olmeNB$gtb)    
@@ -94,12 +96,12 @@ index.batch <- function(
               y2m=NULL
             }
           
-          if (olmeNB$mod =="NoN"|i.se==F) #YZ (add i.se, May 30, 2012)
+          if (olmeNB$mod =="NoN"|i.se==F) 
             {  
               tem <- jCP.ar1(tpar=est, ypre=ypre, ynew=ynew, 
-                             y2m=y2m, #YZ: add y2m (May 28, 2012)
-                             stp=stp, #YZ: add (May 24, 2012) 
-                             XM=xm,   #YZ: change (xm0 -> xm, May 24, 2012)
+                             y2m=y2m, 
+                             stp=stp, 
+                             XM=xm,   
                              mod=olmeNB$mod, MC=iMC, qfun=qfun, oth=olmeNB$gi)
 
             }else{            
@@ -107,13 +109,13 @@ index.batch <- function(
                                tpar=est, ## log(a),log(theta),log(delta),b0,...
                                ypre=ypre, ## vector of length # pre, containing CEL
                                ynew=ynew, ## vector of length # new, containing CEL
-                               y2m=y2m, #YZ: add (May 28, 2012)
-                               XM=xm,   #YZ: change (xm0 -> xm, May 24, 2012) 
-                               stp=stp, #YZ add stp (May 24, 2012)
+                               y2m=y2m, 
+                               XM=xm,  
+                               stp=stp,
                                dist=olmeNB$mod, V=olmeNB$V, mc=iMC, qfun=qfun)
             }
         }
-      if (olmeNB$mod == "NoN" | i.se==FALSE) {   #YZ (add i.se May 30, 2012)
+      if (olmeNB$mod == "NoN" | i.se==FALSE) {  
         tem1= c(NA, NA, NA) 
       }else{ tem1=pp.ci(tem) }
       PP[l,]=c(tem, tem1)
@@ -121,7 +123,7 @@ index.batch <- function(
       if (IPRT)
         {
           round.tem <-round(tem,3)
-          if (olmeNB$mod != "NoN" & i.se==TRUE)  #YZ (add i.se May 30, 2012)
+          if (olmeNB$mod != "NoN" & i.se==TRUE) 
             { 
               round.tem1 <- round(tem1,3) 
               cat("\n patient", i) 
@@ -132,7 +134,7 @@ index.batch <- function(
             }
         }
     }  
-  if (IPRT) cat("\n")  #YZ  add (May 30, 2012)
+  if (IPRT) cat("\n") 
 
 
   res <- list()
@@ -154,11 +156,12 @@ Psum1 <-
            u1, u2, # u1=mean(Y1), u2=mean(Y2)
            a, Th,           #Var(Gi), under the gamma model, Th=scale
            dist="G",       #"G" = gamma, "N" = log-normal, "GN" = mix of gamma and normal#"U" = log-uniform #"NoN" = non-parametric
-           othr=NULL       # if dist= "GN",
-                                        # othr=list(u.n=3, s.n=0.5, p.mx=0.05, sh.mx=NA)
-                                        # if dist="NoN", 
-                                        # othr = ghat frequency table of gi (olmeNB$gtb)
-                                        # for other dist options, othr = NULL 
+           othr=NULL,       # if dist= "GN",
+           sn1
+           ## othr=list(u.n=3, s.n=0.5, p.mx=0.05, sh.mx=NA)
+           ## if dist="NoN", 
+           ## othr = ghat frequency table of gi (olmeNB$gtb)
+           ## for other dist options, othr = NULL 
            )
   { if (Y2==0) {return(1)}
     uVa=c(u1, u2)/a
@@ -168,16 +171,23 @@ Psum1 <-
         return(tem)
       }
     else if (dist=="G") #gamma
-      {
-        
-        tem1=integrate(cum.fun, lower=0, upper=Inf, a_inv=1/a, sh=1/Th, sc=Th, y1=Y1, y2=Y2, u1=uVa[1], u2=uVa[2], abs.tol=1e-75)
-        tem2=integrate(int.fun, lower=0, upper=Inf, a_inv=1/a, sh=1/Th, sc=Th, ysum=Y1, usum=uVa[1], abs.tol=1e-75)
+      { 
+        tem1 <- integrate(cum.fun, lower=0, upper=Inf, a_inv=1/a, sh=1/Th, sc=Th, y1=Y1, y2=Y2, u1=uVa[1], u2=uVa[2], abs.tol=1e-75,sn1=sn1)
+        if (sn1 > 0) tem2 <- integrate(int.fun, lower=0, upper=Inf, a_inv=1/a, sh=1/Th, sc=Th, ysum=Y1, usum=uVa[1], abs.tol=1e-75)
+        else{
+          tem2 <- list();
+          tem2$v <- 1
+        }
       }  
     else if (dist=="N")
-      {  t1=sqrt(log(Th+1)) #sd (sc)
-         t2=-t1^2/2 #mean (sh)
-         tem1=integrate(cum1.ln, lower=0, upper=Inf, a_inv=1/a, sh=t2, sc=t1, y1=Y1, y2=Y2, u1=uVa[1], u2=uVa[2], abs.tol=1e-75)
-         tem2=integrate(int1.ln, lower=0, upper=Inf, a_inv=1/a, sh=t2, sc=t1, ysum=Y1, usum=uVa[1],abs.tol=1e-75)
+      {  t1 <- sqrt(log(Th+1)) #sd (sc)
+         t2 <- -t1^2/2 #mean (sh)
+         tem1 <- integrate(cum1.ln, lower=0, upper=Inf, a_inv=1/a, sh=t2, sc=t1, y1=Y1, y2=Y2, u1=uVa[1], u2=uVa[2], abs.tol=1e-75,sn1=sn1)
+         if (sn1 > 0) tem2 <- integrate(int1.ln, lower=0, upper=Inf, a_inv=1/a, sh=t2, sc=t1, ysum=Y1, usum=uVa[1],abs.tol=1e-75)
+         else{
+           tem2 <- list();
+           tem2$v <- 1
+         }
        }
     else {
       stop("mod must be G, N or NoN")
@@ -207,7 +217,8 @@ Pmax1 <-
            a=0.5, 
            Th=3,                #var(G), no use if dist = "NoN" 
            dist="G",            # "G"=gamma, "N" = lognormal, "NoN = nonparametric
-           othr=NULL            # othr=gi (a vector) if  dist = "NoN", not used otherwise
+           othr=NULL,            # othr=gi (a vector) if  dist = "NoN", not used otherwise
+           sn1
            )
 { if (Y2==0) {return(1)}
   uVa1=u1/a
@@ -218,19 +229,51 @@ Pmax1 <-
       return(tem)
     }
   else if (dist=="G") 
-    { tem1=integrate(max.fun, lower=0, upper=Inf, a_inv=1/a, sh=1/Th, sc=Th, y1=Y1, maxY2=Y2, u1=uVa1, u2=uVa2, abs.tol=1e-75)
-      tem2=integrate(int.fun, lower=0, upper=Inf, a_inv=1/a, sh=1/Th, sc=Th, ysum=Y1, usum=uVa1, abs.tol=1e-75)
+    {
+      tem1 <- integrate(max.fun, lower=0, upper=Inf, a_inv=1/a, sh=1/Th, sc=Th, y1=Y1, maxY2=Y2, u1=uVa1, u2=uVa2, abs.tol=1e-75,sn1=sn1)
+      if (sn1 > 0) tem2 <- integrate(int.fun, lower=0, upper=Inf, a_inv=1/a, sh=1/Th, sc=Th, ysum=Y1, usum=uVa1, abs.tol=1e-75)
+      else{
+        tem2 <- list();tem2$v <- 1
+      }
     }  
   else if (dist=="N")
     {  t1=sqrt(log(Th+1)) #sd (sc)
        t2=-t1^2/2 #mean (sh)
-       tem1=integrate(max.ln, lower=0, upper=Inf, a_inv=1/a, sh=t2, sc=t1, y1=Y1, maxY2=Y2, u1=uVa1, u2=uVa2, abs.tol=1e-75)
-       tem2=integrate(int1.ln, lower=0, upper=Inf, a_inv=1/a, sh=t2, sc=t1, ysum=Y1, usum=uVa1,abs.tol=1e-75)
+       tem1 <- integrate(max.ln, lower=0, upper=Inf, a_inv=1/a, sh=t2, sc=t1, y1=Y1, maxY2=Y2, u1=uVa1, u2=uVa2, abs.tol=1e-75,sn1=sn1)
+       if (sn1 > 0) tem2 <- integrate(int1.ln, lower=0, upper=Inf, a_inv=1/a, sh=t2, sc=t1, ysum=Y1, usum=uVa1,abs.tol=1e-75)
+       else{
+         tem2 <- list();tem2$v <- 1
+       }
      }
   else stop("mod must be G, N or NoN")
   val <- tem1$v/tem2$v
   return(1-val)
 }
+
+## ================ numerator of CPI ===========================
+
+cum.fun <-
+  function(
+           ## Pr(Y_i,new+ >= y_i,new+, Y_i,pre+ = y_i,pre+, G_i=g) 
+           ## = Pr(Y_i,new+ >= y_i,new+|Y_i,pre+ = y_i,pre+, G_i=g) Pr(Y_i,pre+ = y_i,pre+|G_i=g) Pr(G_i=g)
+           ## = Pr(Y_i,new+ >= y_i,new+|G_i=g) Pr(Y_i,pre+ = y_i,pre+|G_i=g) Pr(G_i=g) ## conditional independence
+           ## = (1-pnbinom(Y_i,new+;size=u2,prob=p))*dnbinom(Y_ipre+;size=u1,prob=p)*dgamma(gi;shape=sh,scale=1/sh)
+           ## where u1 = sum_{j in old scan} exp(beta^T * Xij) and u2 = sum_{j in new scan} exp(beta^T * Xij)  
+           x=2,          # value of the random effect
+           a_inv=0.5,    # 1/a
+           sh=0.5, sc=2, # shape and scale of the Gamma dist'n
+           y1=2, y2=2,   # Y1=sum(y.pre), Y2=sum(y.new)
+           u1=3, u2=3,    # u1 = r1 = mu1/a; u2= r2 =mu2/a
+           sn1
+           )
+{
+  p <- x/(x+a_inv)  ## in this manuscript p = 1-p
+  if (sn1>0) tem <- p^y1*(1-p)^u1 else tem <- 1
+  tem <- tem*dgamma(x, shape=sh, scale=sc)
+  tem <- tem*pnbinom(y2-1, prob=1-p, size=u2)
+  return(tem)
+}
+
 
 
 max.fun <-
@@ -240,20 +283,55 @@ max.fun <-
            u1=1.5,              #Ex(Ypre+)
            u2=c(1.5,1.5,1.5),   #Ex(Ynew), vector
            a_inv=0.5,           #1/a
-           sh=0.5, sc=2         #shame and scale of the Gamma dist'n
+           sh=0.5, sc=2,sn1         #shame and scale of the Gamma dist'n
            )
 {   
-  P=x/(x+a_inv) 
-                                        #pr(Y1+= y1+ |g) 
-  tem=P^y1*(1-P)^u1*dgamma(x, shape=sh, scale=sc)
+  P <- x/(x+a_inv) 
+  ## pr(Y1+ = y1+ |g) 
+  if (sn1 > 0) tem <- P^y1*(1-P)^u1 else tem <- 1
+  tem <- tem*dgamma(x, shape=sh, scale=sc)
   for (i in 1:length(u2))
     { 
-      tem1=pnbinom(maxY2-1, prob=1-P, size=u2[i])
-      tem=tem*tem1
+      tem1 <- pnbinom(maxY2-1, prob=1-P, size=u2[i])
+      tem <- tem*tem1
     }
   return(tem) ## change from tem*v Jun 13
 }
 
+
+
+cum1.ln <-
+function( x=2, #value of the random effect
+         a_inv=0.5,             # 1/a
+         sh=0.5, sc=2,          # lnorm paramters, sc=s=sqrt(log(Th+1)), sh = u = -s^2/2 
+         y1=2, y2=2, u1=3, u2=3,sn1 #see cum.fun
+         )
+{   p=x/(x+a_inv)  
+    if (sn1 > 0) tem <- p^y1*(1-p)^u1 else tem <- 1
+    tem <- tem*dlnorm(x, meanlog=sh, sdlog=sc)
+    tem <- tem*pnbinom(y2-1, prob=1-p, size=u2)
+    return(tem)
+}
+
+max.ln <-
+function(x=1, y1=0, maxY2=3, u1=1.5, u2=c(1.5,1.5,1.5), a_inv=0.5, 
+       #see max.fun  
+       sh=0.5, sc=2,sn1 #sh=mean, sc=sd of the lognormal dist'n
+    )
+{   
+    P <- x/(x+a_inv) 
+    #pr(Y1+= y1+ |g) 
+    if (sn1 > 0) tem <- P^y1*(1-P)^u1 else tem <- 1
+    tem <- tem*dlnorm(x, meanlog=sh, sdlog=sc)
+    for (i in 1:length(u2)){
+      
+      tem1 <- pnbinom(maxY2-1, prob=1-P, size=u2[i])
+      tem <- tem*tem1
+    }
+    return(tem)
+}
+
+## ===========================================
 
 CP.se <-
   function(tpar,
@@ -273,10 +351,10 @@ CP.se <-
            pty="sum")     # q() = "sum" or "max" 
 { if (Y2==0) return(c(1,0))
   
-                                        #the point estimate 
+  ## the point estimate 
   p=jCP(tpar=tpar, Y1=Y1, Y2=Y2, sn1=sn1, sn2=sn2, XM=XM, dist=dist, type=pty) ## LG=FALSE
-
-                                        #s.e.of logit(Phat)
+  
+  ## s.e.of logit(Phat)
   lg=TRUE # indicator for logit transformation of p
   jac=jacobian(func=jCP, x=tpar, Y1=Y1, Y2=Y2, sn1=sn1, sn2=sn2, XM=XM, dist=dist, LG=lg, type=pty)
   ## requires library("numDeriv")
@@ -295,11 +373,11 @@ jCP <-
            Y2,
            ## Y2 = q(y_new)
            sn1, sn2,
-                                        # sn1 and sn2: number of scans in the pre and new sets.
+           ## sn1 and sn2: number of scans in the pre and new sets.
            XM=NULL,
-                                        # XM : matrix of covariates
+           ## XM : matrix of covariates
            dist="G", 
-                                        #same as CP.se for description
+           ## same as CP.se for description
            LG=FALSE,     #indicatior for logit transformation
            oth=NULL, # see Psum1 and Pmax1
            type="sum") 
@@ -317,70 +395,68 @@ jCP <-
   u1=sum(u[1:sn1])
   if (type=="sum") 
     { u2=sum(u[-(1:sn1)])
-      temp=Psum1(Y1=Y1, Y2=Y2, u1=u1, u2=u2, a=a, Th=th, dist=dist, othr=oth)
+      temp=Psum1(Y1=Y1, Y2=Y2, u1=u1, u2=u2, a=a, Th=th, dist=dist, othr=oth,sn1=sn1)
     }else { ## max
       u2=u[-(1:sn1)]
-      temp=Pmax1(Y1=Y1, Y2=Y2, u1=u1, u2=u2, a=a, Th=th, dist=dist, othr=oth)
+      temp=Pmax1(Y1=Y1, Y2=Y2, u1=u1, u2=u2, a=a, Th=th, dist=dist, othr=oth,sn1=sn1)
     }
   if (LG) temp=lgt(temp)
   return(temp)
 }
 
 
-Psum1 <-
-  function(Y1=0, Y2=1,     #Y1=sum(y.pre), Y2=sum(y.new)
-           u1=1.5, u2=1.5, # u1=mean(Y1), u2=mean(Y2)
-           a=0.5, 
-           Th=3,           #Var(Gi), under the gamma model, Th=scale
-           dist="G",       #"G" = gamma, "N" = log-normal,
-           ## "GN" = mix of gamma and normal
-           ## "U" = log-uniform
-           ## "NoN" = non-parametric
-           othr=NULL       # if dist= "GN",
-                                        # othr=list(u.n=3, s.n=0.5, p.mx=0.05, sh.mx=NA)
-                                        # if dist="NoN", 
-                                        # othr = ghat frequency table of gi (olmeNB$gtb)
-                                        # for other dist options, othr = NULL 
-           )
-  { if (Y2==0) {return(1)}
+## Psum1 <-
+##   function(Y1=0, Y2=1,     #Y1=sum(y.pre), Y2=sum(y.new)
+##            u1=1.5, u2=1.5, # u1=mean(Y1), u2=mean(Y2)
+##            a=0.5, 
+##            Th=3,           #Var(Gi), under the gamma model, Th=scale
+##            dist="G",       #"G" = gamma, "N" = log-normal,
+##            ## "GN" = mix of gamma and normal
+##            ## "U" = log-uniform
+##            ## "NoN" = non-parametric
+##            othr=NULL       # if dist= "GN",
+##                                         # othr=list(u.n=3, s.n=0.5, p.mx=0.05, sh.mx=NA)
+##                                         # if dist="NoN", 
+##                                         # othr = ghat frequency table of gi (olmeNB$gtb)
+##                                         # for other dist options, othr = NULL 
+##            )
+##   { if (Y2==0) {return(1)}
     
-    if (dist=="NoN")
-      { 
-        tem=Psum.non(Y1=Y1, Y2=Y2, u1=u1, u2=u2, a=a, gi=othr)
-        return(tem)
-      }
+##     if (dist=="NoN")
+##       { 
+##         tem=Psum.non(Y1=Y1, Y2=Y2, u1=u1, u2=u2, a=a, gi=othr)
+##         return(tem)
+##       }
     
-    uVa=c(u1, u2)/a
-    if (dist=="G") #gamma
-      { tem1=integrate(cum.fun, lower=0, upper=Inf, a_inv=1/a, sh=1/Th, sc=Th, y1=Y1, y2=Y2, u1=uVa[1], u2=uVa[2], abs.tol=1e-75)
-        tem2=integrate(int.fun, lower=0, upper=Inf, a_inv=1/a, sh=1/Th, sc=Th, ysum=Y1, usum=uVa[1], abs.tol=1e-75)
-      }  
-    if (dist=="N")
-      {  t1=sqrt(log(Th+1)) #sd (sc)
-         t2=-t1^2/2 #mean (sh)
-         tem1=integrate(cum1.ln, lower=0, upper=Inf, a_inv=1/a, sh=t2, sc=t1, y1=Y1, y2=Y2, u1=uVa[1], u2=uVa[2], abs.tol=1e-75)
-         tem2=integrate(int1.ln, lower=0, upper=Inf, a_inv=1/a, sh=t2, sc=t1, ysum=Y1, usum=uVa[1],abs.tol=1e-75)
-       }
+##     uVa=c(u1, u2)/a
+##     if (dist=="G") #gamma
+##       { tem1=integrate(cum.fun, lower=0, upper=Inf, a_inv=1/a, sh=1/Th, sc=Th, y1=Y1, y2=Y2, u1=uVa[1], u2=uVa[2], abs.tol=1e-75)
+##         tem2=integrate(int.fun, lower=0, upper=Inf, a_inv=1/a, sh=1/Th, sc=Th, ysum=Y1, usum=uVa[1], abs.tol=1e-75)
+##       }  
+##     if (dist=="N")
+##       {  t1=sqrt(log(Th+1)) #sd (sc)
+##          t2=-t1^2/2 #mean (sh)
+##          tem1=integrate(cum1.ln, lower=0, upper=Inf, a_inv=1/a, sh=t2, sc=t1, y1=Y1, y2=Y2, u1=uVa[1], u2=uVa[2], abs.tol=1e-75)
+##          tem2=integrate(int1.ln, lower=0, upper=Inf, a_inv=1/a, sh=t2, sc=t1, ysum=Y1, usum=uVa[1],abs.tol=1e-75)
+##        }
     
-    if (dist=="U")
-      { t1=nr.fun(Th)
-        tem1=integrate(cum1.uf, lower=-t1[2], upper=t1[1], a_inv=1/a, y1=Y1, y2=Y2, u1=uVa[1], u2=uVa[2], abs.tol=1e-75)
-        tem2=integrate(int1.uf, lower=-t1[2], upper=t1[1], a_inv=1/a, ysum=Y1, usum=uVa[1],abs.tol=1e-75)
-      }
-    if (dist=="GN")
-      { if (is.na(othr$sh.mx)) othr$sh.mx=getSH.gn(Th, othr)
-        tem1=integrate(cum1.gn, lower=0, upper=Inf, a_inv=1/a, sh=othr$sh.mx, 
-          sc=Th, u.n=othr$u.n, s.n=othr$s.n, p.mx=othr$p.mx, y1=Y1, y2=Y2, u1=uVa[1], u2=uVa[2],abs.tol=1e-75)
+##     if (dist=="U")
+##       { t1=nr.fun(Th)
+##         tem1=integrate(cum1.uf, lower=-t1[2], upper=t1[1], a_inv=1/a, y1=Y1, y2=Y2, u1=uVa[1], u2=uVa[2], abs.tol=1e-75)
+##         tem2=integrate(int1.uf, lower=-t1[2], upper=t1[1], a_inv=1/a, ysum=Y1, usum=uVa[1],abs.tol=1e-75)
+##       }
+##     if (dist=="GN")
+##       { if (is.na(othr$sh.mx)) othr$sh.mx=getSH.gn(Th, othr)
+##         tem1=integrate(cum1.gn, lower=0, upper=Inf, a_inv=1/a, sh=othr$sh.mx, 
+##           sc=Th, u.n=othr$u.n, s.n=othr$s.n, p.mx=othr$p.mx, y1=Y1, y2=Y2, u1=uVa[1], u2=uVa[2],abs.tol=1e-75)
         
-        tem2=integrate(int1.gn, lower=0, upper=Inf, a_inv=1/a, sh=othr$sh.mx, sc=Th,  u.n=othr$u.n, s.n=othr$s.n, p.mx=othr$p.mx, ysum=Y1, usum=uVa[1],abs.tol=1e-75)
-      }
+##         tem2=integrate(int1.gn, lower=0, upper=Inf, a_inv=1/a, sh=othr$sh.mx, sc=Th,  u.n=othr$u.n, s.n=othr$s.n, p.mx=othr$p.mx, ysum=Y1, usum=uVa[1],abs.tol=1e-75)
+##       }
     
-    val=tem1$v/tem2$v
-    return(1-val)
-  }
+##     val=tem1$v/tem2$v
+##     return(1-val)
+##   }
 
-
-                                        #YZ: this function can be removed (May 24)
 tp.fun <- function(i1, ## idat$ID
                    i2, ## idat$Vcode
                    y ## idat$CEL
@@ -404,24 +480,6 @@ tp.fun <- function(i1, ## idat$ID
   return(x)
 }
 
-cum.fun <-
-  function(
-           ## Pr(Y_i,new+ >= y_i,new+, Y_i,pre+ = y_i,pre+, G_i=g) 
-           ## = Pr(Y_i,new+ >= y_i,new+|Y_i,pre+ = y_i,pre+, G_i=g) Pr(Y_i,pre+ = y_i,pre+|G_i=g) Pr(G_i=g)
-           ## = Pr(Y_i,new+ >= y_i,new+|G_i=g) Pr(Y_i,pre+ = y_i,pre+|G_i=g) Pr(G_i=g) ## conditional independence
-           ## = (1-pnbinom(Y_i,new+;size=u2,prob=p))*dnbinom(Y_ipre+;size=u1,prob=p)*dgamma(gi;shape=sh,scale=1/sh)
-           ## where u1 = sum_{j in old scan} exp(beta^T * Xij) and u2 = sum_{j in new scan} exp(beta^T * Xij)  
-           x=2,          # value of the random effect
-           a_inv=0.5,    # 1/a
-           sh=0.5, sc=2, # shape and scale of the Gamma dist'n
-           y1=2, y2=2,   # Y1=sum(y.pre), Y2=sum(y.new)
-           u1=3, u2=3    # u1 = r1 = mu1/a; u2= r2 =mu2/a
-           )
-{   p=x/(x+a_inv)  ## in this manuscript p = 1-p
-    tem=p^y1*(1-p)^u1*dgamma(x, shape=sh, scale=sc)
-    tem=tem*pnbinom(y2-1, prob=1-p, size=u2)
-    return(tem)
-  }
 
 pp.ci <-
   function(x=c(0.01, 0.1), level=0.95, lg=TRUE)

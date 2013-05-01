@@ -89,8 +89,7 @@ Same as \code{pty}.
 
 
 \references{
- Zhao, Y., Li, D.K.B., Petkau, J.A., Riddehough, A. & Traboulsee, A.  Detection of unusually large increases in 
-MRI lesion counts in multiple sclerosis patients.
+Zhao, Y., Li, D.K.B., Petkau, J.A., Riddehough, A. & Traboulsee, A.  Detection of unusual increases in MRI lesion counts in multiple sclerosis patients.
 }
 \author{
  Zhao, Y. and Kondo, Y.
@@ -118,10 +117,7 @@ The functions to generate simulated datasets:
 }
 
 \examples{
-
 \dontrun{
-
-
 ## tpar contains: log(a),log(theta),beta0
 tpar <-  c(0.5, -0.5, 1.3)
 ## A scalar containing the sum of the response counts in pre scans
@@ -148,11 +144,9 @@ CP.se(tpar = tpar, Y1=Y1 ,Y2= Y2, sn1 = sn1, sn2 = sn2, XM = XM, dist = dist, V 
 CP.se(tpar = tpar, Y1=Y1 ,Y2= Y2, sn1 = sn1, sn2 = sn2, XM = XM, dist = dist, V = V, pty = "max")
 
 ## jCP calls for CP.se to compute the estimate of the conditional probability
-jCP(tpar = tpar, Y1 = Y1, Y2 = Y2, sn1 = sn1, sn2 = sn2, XM = XM, dist = dist, LG = FALSE, oth = NULL, type = "sum") 
-
+jCP(tpar = tpar, Y1 = Y1, Y2 = Y2, sn1 = sn1, sn2 = sn2, 
+    XM = XM, dist = dist, LG = FALSE, oth = NULL, type = "sum")
 }
-
-
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

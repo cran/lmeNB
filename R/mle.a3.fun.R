@@ -111,6 +111,14 @@ mle.a3.fun <-  function(formula,     ## an object of class "formula"
     if (IPRT) {cat("\nlog(a), log(th), b0, b1, ...\n");print(p.new)}
     dth=max(abs(p.new-p.ini))
     counter <- counter +1
+
+    ## If p.new and p.ini contains Inf at the same spot, then
+    ## dth = NaN
+    whereInf <- (abs(p.new)==Inf)* (abs(p.new)==Inf)
+    if ( sum(whereInf))
+      {
+        dth=max(abs(p.new[whereInf]-p.ini[whereInf]))
+      }
   } 
   vcm=NULL 
   if (DT$cn>0) vcm=solve(temB$hessian)

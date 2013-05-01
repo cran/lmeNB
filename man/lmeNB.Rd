@@ -83,7 +83,8 @@ This function is a wrapper for \code{\link{mle.fun}},
 
 
 \usage{
-lmeNB(formula,data,ID,p.ini=NULL,IPRT=FALSE,AR=FALSE,RE=c("G","N","semipara"),deps=1e-04,Vcode,i.tol=1e-75,o.tol=1.e-3,maxit=100)
+lmeNB(formula,data,ID,p.ini=NULL,IPRT=FALSE,AR=FALSE,RE=c("G","N","semipara"),
+      deps=0.001,Vcode,i.tol=1e-75,o.tol=1.e-3,maxit=100)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -103,6 +104,7 @@ lmeNB(formula,data,ID,p.ini=NULL,IPRT=FALSE,AR=FALSE,RE=c("G","N","semipara"),de
   
   \item{ID}{
     A vector of length \emph{ sum_i^N n_i }, containing the patient IDs. i.e., \code{c(rep(ID_1,n_1),rep(ID_2,n_2),...,rep(ID_N,n_N))}.
+    The length must be the same as the number of rows of \code{data}. Missing values are NOT accepted.
   }
   %
   \item{p.ini}{
@@ -121,14 +123,19 @@ lmeNB(formula,data,ID,p.ini=NULL,IPRT=FALSE,AR=FALSE,RE=c("G","N","semipara"),de
     If \code{TRUE} then print iterations. 
     
   }
-  \item{AR}{WRITE SOMETHING}
+  \item{AR}{
+  A logical, if \code{TRUE}, then the AR(1) structure is assumed among the responses.
+
+}
   
   \item{RE}{
   The distribution of random effects \emph{G_i}.
   If \code{model="G"} then the random effects are assumed to be from the gamma distribution.
   If \emph{model="N"} then they are assumed to be form the log-normal distribution.
 }
-\item{deps}{aasdf}
+\item{deps}{
+Passed to mle.a3.fun and mle.ar1.non3.
+}
 
 \item{Vcode}{
 A vector of length the total number of repeated measures, containing the indices of time point.
@@ -163,7 +170,17 @@ The log-likelihood is obtained by marginalizing out the random effects.
 The numerical integration is carried out using adaptive quadrature.
 %
 
-The missing count responses, if assumed to be missing at random, can be igored.Other types of missing data are currently not accepted.
+
+The missing count responses, if assumed to be missing at random, can be ignored. 
+%
+Other types of missing data are currently not accepted.
+
+
+When the estimated over-dispersion parameter (\emph{a}) is close to zero, the negative binomial model reduces to the poisson model, suggesting that the negative binomial mixed-effect model might not be appropriate.
+%
+When \code{AR}=1 and the estimated auto-correlation parameter (\emph{d}) is close to zero, the model is suggesting that there is no AR(1) structure among the sequentially collected responses. Hence user might use \code{AR}=0 setting which assume no AR(1) structure.
+%
+We note that the results could be sensitive to initial values.
 }
 
 \value{
@@ -199,8 +216,7 @@ The column labeled as CEL contains the response counts.
 }
 
 \references{
- Zhao, Y., Li, D.K.B., Petkau, J.A., Riddehough, A. & Traboulsee, A.  Detection of unusually large increases in 
-MRI lesion counts in multiple sclerosis patients.
+Zhao, Y., Li, D.K.B., Petkau, J.A., Riddehough, A. & Traboulsee, A.  Detection of unusual increases in MRI lesion counts in multiple sclerosis patients.
 }
 \author{
  Zhao, Y. and Kondo, Y.
@@ -232,7 +248,7 @@ The functions to generate simulated datasets:
 }
 
 \examples{
-## See the examples in help files of the subroutines.
+## See the examples in help files of rNBME.R.
 
 }
 
