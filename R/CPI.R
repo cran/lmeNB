@@ -14,14 +14,15 @@ index.batch <- function(
                         iMC=FALSE #for ar1 only
                         ## If olmeNB  ==  NULL then this is required
                         ){
-  if (nrow(data) !=length(labelnp))stop("the length of labelnp does not agree with the length of ID")
+  if (nrow(data) !=length(labelnp))stop("the length of labelnp does not agree with the number of rows in data")
+  if (nrow(data) !=length(ID))stop("the length of labelnp does not agree with the number of rows in data")
   ## If the labelnp is TRUE/FALSE then the following code change them to 1/0
   ## If the labelnp is 1/0 then the following code keep them as 1/0
   labelnp[labelnp] <- 1; labelnp[labelnp] <- 0
   
   ftd <- formulaToDat(formula=olmeNB$formula,data=data,ID=ID,labelnp=labelnp)
   fulldata0 <- data.frame(ftd$dat)  # dat = (ID, Y, x1, x2, ...) numeric matrix
-  labelnp <- ftd$labelnp
+  lnp <- ftd$labelnp
   if (olmeNB$cor != "ar1") Vcode <- rep(NA,length(fulldata0$ID))
   fulldat <- data.frame(ID=fulldata0$ID,Vcode=Vcode,CEL=fulldata0$CEL)
   ## If there is covariate, then add them in idat
@@ -35,7 +36,7 @@ index.batch <- function(
   ## PP is output of this function
   PP <- matrix(NA, nrow=n, ncol=4)
   colnames(PP) <- c("p", "SE of logit(p_hat)", "low95", "up95")
-  rownames(PP) <- id
+  rownames(PP) <- unique(ftd$origID)
 
   l <- 0
   for ( i in id ) ## 1 to N (the total number of patietns)
@@ -45,25 +46,25 @@ index.batch <- function(
       idat <- fulldat[fulldat$ID==i,,drop=FALSE] 
       
       if (nrow(idat)==0) next  #next if no data from this patient
-      ilabelnp=labelnp[fulldat$ID==i]
+      ilnp=lnp[fulldat$ID==i]
       
-      if (! (1 %in% ilabelnp)) next  ## next if no new scans
-      ##if (! (0 %in% ilabelnp)) next   ## next if no old scans !!!!!!CAUSUE problem for AR/semipara.
+      if (! (1 %in% ilnp)) next  ## next if no new scans
+      ##if (! (0 %in% ilnp)) next   ## next if no old scans !!!!!!CAUSUE problem for AR/semipara.
 
       xm <- NULL
       if ( ncol(idat)>3) xm <- as.matrix(idat[,-c(1:3)])
-      ## the component of ilabelnpTF = TRUE if the repeated measure is pre scans.
-      ilabelnpTF <- (ilabelnp==0)       
+      ## the component of ilnpTF = TRUE if the repeated measure is pre scans.
+      ilnpTF <- (ilnp==0)       
 
       if (olmeNB$cor=="ind")  ## independent model
         {
           ## total count on pre scans
-          Y1 <- sum(idat$CEL[ilabelnpTF]) 
-          ## if qfun = "sum" then Y2 = sum(idat$CEL[!ilabelnpTF]) else if qfun="max" then Y2= max(idat$CEL[!ilabelnpTF])
-          Y2 <- eval(call(qfun, idat$CEL[!ilabelnpTF]))
+          Y1 <- sum(idat$CEL[ilnpTF]) 
+          ## if qfun = "sum" then Y2 = sum(idat$CEL[!ilnpTF]) else if qfun="max" then Y2= max(idat$CEL[!ilnpTF])
+          Y2 <- eval(call(qfun, idat$CEL[!ilnpTF]))
                                       
-          sn1 <- sum(ilabelnpTF)        ## number of pre scans
-          sn2 <- sum(!ilabelnpTF)       ## number of new scans
+          sn1 <- sum(ilnpTF)        ## number of pre scans
+          sn2 <- sum(!ilnpTF)       ## number of new scans
 
           if (olmeNB$mod == "NoN"|i.se == FALSE) {
               ## If nonparametric method is used for the random effects
@@ -83,8 +84,8 @@ index.batch <- function(
             }  
         }else{          ##AR(1) model
                                      
-          ypre <- idat$CEL[ilabelnpTF]
-          ynew <- idat$CEL[!ilabelnpTF]
+          ypre <- idat$CEL[ilnpTF]
+          ynew <- idat$CEL[!ilnpTF]
           stp <- c(0,diff(idat$Vcode))             
           Qf <- match.fun(qfun)
           newQ <- Qf(ynew, na.rm=T)
@@ -126,11 +127,11 @@ index.batch <- function(
           if (olmeNB$mod != "NoN" & i.se==TRUE) 
             { 
               round.tem1 <- round(tem1,3) 
-              cat("\n patient", i) 
+              cat("\n patient", rownames(PP)[i]) 
               cat(": estimated Pr (SE of logit(p_hat)) ",round.tem[1]," (",round.tem[2],")", sep="")
               cat( ": 95% CI [",round.tem1[1], "\ ", round.tem1[2], "]\n", sep="")
             }else{
-              cat("\n patient", i, "estimated Pr",round.tem)
+              cat("\n patient",  rownames(PP)[i], "estimated Pr",round.tem)
             }
         }
     }  
@@ -139,15 +140,44 @@ index.batch <- function(
 
   res <- list()
   res$condProbSummary <- PP
-  res$para$CEL <- fulldat$CEL
-  res$para$labelnp <- labelnp
-  res$para$ID <- ID
+  res$para$CEL <- model.response(model.frame(formula=olmeNB$formula,data=data,na.action=function(z)z)) ## NA is kept
+  res$para$labelnp <- labelnp ## original input which contains labelnp for corresponding NA
+  res$para$ID <- ID ## original ID which contains ID for the corresponding NA
   res$para$qsum <- qfun
   class(res) <- "IndexBatch"
   return(res)
 }
 
+getY2.1=function(tot=2, ## q(Y_new)
+  n=3, ## # new scans
+  qfun="sum")
+{
+  if (tot==0){ return(matrix(rep(0,n),nrow=1 ))}
+  if (n==1) 
+    { ym=tot-1
+      return(matrix(ym, ncol=n))
+    }
 
+  N=tot^(n-1)
+  ii=0:(N-1)
+  
+  ym=NULL
+  for (j in 1:(n-1))
+    { t2=ii%%tot
+      ii=ii%/%tot
+      ym=cbind(ym, t2)
+    }
+  if (qfun=="sum") 
+    { ysum=apply(ym, 1,sum)
+      yn=tot-ysum-1
+      ym=cbind(ym, yn)
+      ym=ym[yn>=0,]
+    }
+  else { yn=rep(tot-1, nrow(ym)) 
+         ym=cbind(ym, yn) }
+  
+  return(matrix(ym, ncol=n))
+}
 
 
 
@@ -192,22 +222,24 @@ Psum1 <-
     else {
       stop("mod must be G, N or NoN")
     }
-    ## if (dist=="U")
-    ##   { t1=nr.fun(Th)
-    ##     tem1=integrate(cum1.uf, lower=-t1[2], upper=t1[1], a_inv=1/a, y1=Y1, y2=Y2, u1=uVa[1], u2=uVa[2], abs.tol=1e-75)
-    ##     tem2=integrate(int1.uf, lower=-t1[2], upper=t1[1], a_inv=1/a, ysum=Y1, usum=uVa[1],abs.tol=1e-75)
-    ##   }
-    ## if (dist=="GN")
-    ##   { if (is.na(othr$sh.mx)) othr$sh.mx=getSH.gn(Th, othr)
-    ##     tem1=integrate(cum1.gn, lower=0, upper=Inf, a_inv=1/a, sh=othr$sh.mx, 
-    ##       sc=Th, u.n=othr$u.n, s.n=othr$s.n, p.mx=othr$p.mx, y1=Y1, y2=Y2, u1=uVa[1], u2=uVa[2],abs.tol=1e-75)
-        
-    ##     tem2=integrate(int1.gn, lower=0, upper=Inf, a_inv=1/a, sh=othr$sh.mx, sc=Th,  u.n=othr$u.n, s.n=othr$s.n, p.mx=othr$p.mx, ysum=Y1, usum=uVa[1],abs.tol=1e-75)
-    ##   }
-    
+
     val=tem1$v/tem2$v
     return(1-val)
   }
+
+
+
+int1.ln <-
+function(x=2, 
+                 a_inv=0.5, #see int.fun
+                 sh=0.5, #mean for dlnorm()
+                 sc=2,   #sd for dlnorm()
+                 ysum=2, usum=3 #see int.fun
+                )
+{   p=x/(x+a_inv)  
+    tem=p^ysum*(1-p)^usum*dlnorm(x, meanlog=sh, sdlog=sc)
+    return(tem)
+}
 
 Pmax1 <-
   function(Y1=0,                #sum(ypre)
@@ -249,6 +281,49 @@ Pmax1 <-
   val <- tem1$v/tem2$v
   return(1-val)
 }
+
+
+Pmax.non <-
+function(Y1=0,               #sum(ypre); ypre+ 
+                  Y2=1,               #max(ynew)
+                  u1=4.5,             #Ex(Ypre+)
+                  u2=c(1.5,1.5, 1.5), #Ex(Ynew), vector
+                  a=0.5, 
+                  gi=NULL)            #a vector (todo) allow a freq table [freq, valu]
+{
+    pb=1/(gi*a+1)
+
+    p=1
+    if (Y2>0)
+    { j2=j1=dnbinom(Y1, prob=pb, size=u1/a)
+      for (i in 1:length(u2))
+      { j2=pnbinom(Y2-1, prob=pb, size=u2[i]/a)*j2 } #pr(Ynew[i]<Y2)
+      p=1-sum(j2)/sum(j1)
+    }
+    return(p)
+}
+
+
+
+Psum.non <-
+function(Y1=0, Y2=1,     # Y1=sum(y.pre), Y2=sum(y.new)
+                  u1=1.5, u2=1.5, #u1 = Ex(Y1); u2= Ex(Y2)
+                  a=0.5, 
+                  gi=NULL         #a freqency table = [freq, g.value]
+                 )
+{
+    pb=1/(gi[,2]*a+1)
+    
+    p=1
+    if (Y2>0)
+    { j1=dnbinom(Y1, prob=pb, size=u1/a)*gi[,1]
+      j2=pnbinom(Y2-1, prob=pb, size=u2/a)*j1
+      p=1-sum(j2)/sum(j1)
+    }
+    return(p)
+}
+
+
 
 ## ================ numerator of CPI ===========================
 
@@ -351,16 +426,14 @@ CP.se <-
            pty="sum")     # q() = "sum" or "max" 
 { if (Y2==0) return(c(1,0))
   
-  ## the point estimate 
-  p=jCP(tpar=tpar, Y1=Y1, Y2=Y2, sn1=sn1, sn2=sn2, XM=XM, dist=dist, type=pty) ## LG=FALSE
+  ## the point estimate Phat
+  p <- jCP(tpar=tpar, Y1=Y1, Y2=Y2, sn1=sn1, sn2=sn2, XM=XM, dist=dist, type=pty, LG=FALSE)
   
-  ## s.e.of logit(Phat)
-  lg=TRUE # indicator for logit transformation of p
-  jac=jacobian(func=jCP, x=tpar, Y1=Y1, Y2=Y2, sn1=sn1, sn2=sn2, XM=XM, dist=dist, LG=lg, type=pty)
-  ## requires library("numDeriv")
-  s2=jac%*%V%*%t(jac)
-  s=sqrt(s2) 
-  return(c(p,s))
+  ## SE of logit(Phat)
+  jac <- jacobian(func=jCP, x=tpar, Y1=Y1, Y2=Y2, sn1=sn1, sn2=sn2, XM=XM, dist=dist, LG=TRUE, type=pty)
+  s2 <- jac%*%V%*%t(jac)
+  s <- sqrt(s2) 
+  return(c(p,s)) ## c(Phat, SE(logit(Phat)))
 }
 
 
@@ -405,58 +478,6 @@ jCP <-
 }
 
 
-## Psum1 <-
-##   function(Y1=0, Y2=1,     #Y1=sum(y.pre), Y2=sum(y.new)
-##            u1=1.5, u2=1.5, # u1=mean(Y1), u2=mean(Y2)
-##            a=0.5, 
-##            Th=3,           #Var(Gi), under the gamma model, Th=scale
-##            dist="G",       #"G" = gamma, "N" = log-normal,
-##            ## "GN" = mix of gamma and normal
-##            ## "U" = log-uniform
-##            ## "NoN" = non-parametric
-##            othr=NULL       # if dist= "GN",
-##                                         # othr=list(u.n=3, s.n=0.5, p.mx=0.05, sh.mx=NA)
-##                                         # if dist="NoN", 
-##                                         # othr = ghat frequency table of gi (olmeNB$gtb)
-##                                         # for other dist options, othr = NULL 
-##            )
-##   { if (Y2==0) {return(1)}
-    
-##     if (dist=="NoN")
-##       { 
-##         tem=Psum.non(Y1=Y1, Y2=Y2, u1=u1, u2=u2, a=a, gi=othr)
-##         return(tem)
-##       }
-    
-##     uVa=c(u1, u2)/a
-##     if (dist=="G") #gamma
-##       { tem1=integrate(cum.fun, lower=0, upper=Inf, a_inv=1/a, sh=1/Th, sc=Th, y1=Y1, y2=Y2, u1=uVa[1], u2=uVa[2], abs.tol=1e-75)
-##         tem2=integrate(int.fun, lower=0, upper=Inf, a_inv=1/a, sh=1/Th, sc=Th, ysum=Y1, usum=uVa[1], abs.tol=1e-75)
-##       }  
-##     if (dist=="N")
-##       {  t1=sqrt(log(Th+1)) #sd (sc)
-##          t2=-t1^2/2 #mean (sh)
-##          tem1=integrate(cum1.ln, lower=0, upper=Inf, a_inv=1/a, sh=t2, sc=t1, y1=Y1, y2=Y2, u1=uVa[1], u2=uVa[2], abs.tol=1e-75)
-##          tem2=integrate(int1.ln, lower=0, upper=Inf, a_inv=1/a, sh=t2, sc=t1, ysum=Y1, usum=uVa[1],abs.tol=1e-75)
-##        }
-    
-##     if (dist=="U")
-##       { t1=nr.fun(Th)
-##         tem1=integrate(cum1.uf, lower=-t1[2], upper=t1[1], a_inv=1/a, y1=Y1, y2=Y2, u1=uVa[1], u2=uVa[2], abs.tol=1e-75)
-##         tem2=integrate(int1.uf, lower=-t1[2], upper=t1[1], a_inv=1/a, ysum=Y1, usum=uVa[1],abs.tol=1e-75)
-##       }
-##     if (dist=="GN")
-##       { if (is.na(othr$sh.mx)) othr$sh.mx=getSH.gn(Th, othr)
-##         tem1=integrate(cum1.gn, lower=0, upper=Inf, a_inv=1/a, sh=othr$sh.mx, 
-##           sc=Th, u.n=othr$u.n, s.n=othr$s.n, p.mx=othr$p.mx, y1=Y1, y2=Y2, u1=uVa[1], u2=uVa[2],abs.tol=1e-75)
-        
-##         tem2=integrate(int1.gn, lower=0, upper=Inf, a_inv=1/a, sh=othr$sh.mx, sc=Th,  u.n=othr$u.n, s.n=othr$s.n, p.mx=othr$p.mx, ysum=Y1, usum=uVa[1],abs.tol=1e-75)
-##       }
-    
-##     val=tem1$v/tem2$v
-##     return(1-val)
-##   }
-
 tp.fun <- function(i1, ## idat$ID
                    i2, ## idat$Vcode
                    y ## idat$CEL
@@ -490,21 +511,21 @@ pp.ci <-
   ## x[1]: an estimate of conditional probability, p 
   ## x[2]: se (logit(phat)) if lg = TRUE
 {
-  if (is.na(x[1])) return(c(NA, NA))
-
-  if (x[1]==1) return(c(1,1))
+  if (is.na(x[1])){ return(c(NA, NA))
+  }else if (x[1]==1) return(c(1,1))
                                         #lg=x[1]<0.2
   ll=0.5+level/2
   del=qnorm(c(1-ll, ll))
   tem=del*x[2]
   
-  if (lg) 
-    { return(ilgt(lgt(x[1])+tem))}
-  else { tem1= x[1]+tem ## YK, June 7, origionally tem1= x+tem
-         tem1[1] = max(tem1[1], 0)
-         tem1[2] = min(tem1[2], 1)
-         return(tem1)
-       }
+  if (lg){
+    return(ilgt(lgt(x[1])+tem))
+  }else{
+    tem1= x[1]+tem ##
+    tem1[1] = max(tem1[1], 0)
+    tem1[2] = min(tem1[2], 1)
+    return(tem1)
+  }
 }
 
 
@@ -557,84 +578,3 @@ pmarg.gauss.fun <-
     return(val)
   }
 
-pmarg.fun <-
-  function(y=1, u=1.5, a=0.5, th=3, dist="G")
-{ uVa=u/a
-                                        # "G": G ~ gamma
-  if (dist=="G") tem1=integrate(pint.fun, lower=0, upper=Inf, a_inv=1/a, sh=1/th, sc=th, ysum=y, usum=uVa)
-
-                                        # "N": G ~ Log normal
-  if (dist=="N")  {
-    tem=log(th+1)
-    u.ln=-tem/2
-    s.ln=sqrt(tem)
-    tem1=integrate(pint.ln.fun, lower=0, upper=Inf, a_inv=1/a, sh=u.ln, sc=s.ln, ysum=y, usum=uVa)
-  }
-
-  val=tem1$v
-  return(val)
-}
-
-dint.fun <-
-  function(x=2, a_inv=0.5, sh=0.5, sc=2, ysum=2, usum=3)
-{   p=x/(x+a_inv) 
-    tem=dnbinom(ysum, size=usum, prob=1-p)*dgamma(x, shape=sh, scale=sc)
-    return(tem)
-  }
-
-dint.ln.fun <-
-  function(x=2, a_inv=0.5, sh=0.5, sc=2, ysum=2, usum=3)
-{   p=x/(x+a_inv) 
-    tem=dnbinom(ysum, size=usum, prob=1-p)*dlnorm(x, meanlog=sh, sdlog=sc)
-    return(tem)
-  }
-
-int1.uf <-
-  function(x=0, a_inv=0.5, ysum=2, usum=3) #see cum.fun
-{   x1=exp(x)
-    p=x1/(x1+a_inv)  
-    tem=p^ysum*(1-p)^usum
-    return(tem)
-  }
-
-
-pint.ln.fun <-
-  function(x=2, a_inv=0.5, sh=0.5, sc=2, ysum=2, usum=3)
-{   p=x/(x+a_inv) 
-    tem=pnbinom(ysum, size=usum, prob=1-p)*dlnorm(x, meanlog=sh, sdlog=sc)
-    return(tem)
-  }
-
-
-                                        #Y1=y1, Y2=y2, Y3 = tot-y1-y2 >0
-                                        # for Pr(Y1=y1, Y2=y2, Y3< y3) => y1+y2+y3 < tot
-getY2.1=function(tot=2, ## q(Y_new)
-  n=3, ## # new scans
-  qfun="sum")
-{
-  if (tot==0){ return(matrix(rep(0,n),nrow=1 ))}
-  if (n==1) 
-    { ym=tot-1
-      return(matrix(ym, ncol=n))
-    }
-
-  N=tot^(n-1)
-  ii=0:(N-1)
-  
-  ym=NULL
-  for (j in 1:(n-1))
-    { t2=ii%%tot
-      ii=ii%/%tot
-      ym=cbind(ym, t2)
-    }
-  if (qfun=="sum") 
-    { ysum=apply(ym, 1,sum)
-      yn=tot-ysum-1
-      ym=cbind(ym, yn)
-      ym=ym[yn>=0,]
-    }
-  else { yn=rep(tot-1, nrow(ym)) 
-         ym=cbind(ym, yn) }
-  
-  return(matrix(ym, ncol=n))
-}

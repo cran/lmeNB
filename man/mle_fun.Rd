@@ -45,7 +45,8 @@ The marginal mean \emph{ mu_ij=E(Y_ij) } is modeled with fixed effect coefficien
 
 
 \usage{
-mle.fun(formula, data, ID, p.ini=NULL, IPRT = FALSE, model = "G",i.tol=1e-75,o.tol=1.e-3)
+mle.fun(formula, data, ID, p.ini=NULL, IPRT = FALSE, 
+        model = "G",i.tol=1e-75,o.tol=1.e-3,COV=TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -85,12 +86,15 @@ If \emph{model="N"} then they are assumed to be form the log-normal distribution
 }
 
 \item{i.tol}{
-A real number to determine the tolerance for \code{\link{integrate}}.
+A real number to determine the absolute tolerance for \code{\link{integrate}}.
 }
 \item{o.tol}{
-A real number to determine the tolerance for \code{\link{optim}}.
+A real number to determine the relative tolerance for \code{\link{optim}}.
 }
 
+\item{COV}{
+Internal use only
+}
 }
 \details{
 %

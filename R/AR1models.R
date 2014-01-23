@@ -878,28 +878,6 @@ ar1.ln2.mmg=function(x=0.5, a_inv=2, mu=1/3, sig=3, y1=c(0,1),
   return(tem)
 }
 
-ar2.fun=function(y=c(0,1,3), U=c(0,1,1), V=c(0,2,2), sz2=c(3,2,2), pr=0.5)
-{  n=length(y)   
-
-   if (n==1) 
-     { pb=pnbinom(y[1], size = sz2[1], prob=pr)
-       return(pb)
-     }
-
-   pb=dnbinom(y[1], size = sz2[1], prob=pr)
-
-   for ( i in 2:n)
-     { k = 0:min(y[i], y[i-1])
-                                      
-       pp=dbb(x=k, N=y[i-1], u=U[i], v=V[i])
-       if (i<n) { pp=pp*dnbinom(y[i]-k, size = sz2[i], prob=pr)}
-       else  { pp=pp*pnbinom(y[i]-k, size = sz2[i], prob=pr) }
-       p1=sum(pp)
-       pb=pb*p1 
-     }
-   return(pb)
- }
-
                                         #Pr(Y2=y2, Y3=y3, ..., Yn<= yn|Y1=y1)
 ar22.fun=function(y=c(0,1,3), U=c(0,1,1), V=c(0,2,2), sz2=c(3,2,2), pr=0.5)
 {  n=length(y)   
@@ -1069,7 +1047,7 @@ ar1.mmg=function(x, a_inv, sh, sc, O1, O2, tot, N, qfun=sum)
 }
 
                                        
-ar1.mm.ln=function(x, a_inv, sig, mu, O1, O2, tot, N, qfun=sum)
+ar1.mm.ln <- function(x, a_inv, sig, mu, O1, O2, tot, N, qfun=sum)
 {  Pr=a_inv/(a_inv+x)
    tem=NULL
    for ( pr in Pr)
@@ -1081,6 +1059,44 @@ ar1.mm.ln=function(x, a_inv, sig, mu, O1, O2, tot, N, qfun=sum)
    tem=tem*dlnorm(x, meanlog=mu, sdlog=sig)
    return(tem)
  }
+
+
+
+dbb <- function(x, N, u, v) {
+  beta(x+u, N-x+v)/beta(u,v)*choose(N,x)
+}
+
+## pbb <- function(q, N, u, v) {
+##   sapply(q, function(xx) sum(dbb(0:xx, N, u, v)))
+## }
+
+## qbb <- function(p, N, u, v) {
+##   pp <- cumsum(dbb(0:N, N, u, v))
+##   sapply(p, function(x) sum(pp < x))
+## }
+
+rbb <- function(n, N, u, v) {
+  p <- rbeta(n, u, v)
+  rbinom(n, N, p)
+}
+
+                                        #logit and inverse logit
+lgt <- function(p)
+{
+  log(p/(1-p))
+}
+
+ilgt <- function(x)
+{
+  tem=exp(x)
+ res=tem/(1+tem)
+ return(res)
+}
+
+
+
+
+
 
 
 CP.ar1.se=function(
@@ -1104,46 +1120,14 @@ CP.ar1.se=function(
      ypre=ypre,## vector of length # pre, containing CEL
      ynew=ynew,## vector of length # new, containing CEL
      y2m=y2m, stp=stp,
-     XM=XM, mod=dist, MC=mc, qfun=qfun)
-   mth="Richardson"
-   if (mc==T) mth="simple" 
+     XM=XM, mod=dist, MC=mc, qfun=qfun,LG=FALSE)
+   
+   if (mc) mth="simple" else mth="Richardson"
                                        
-   jac=jacobian(func=jCP.ar1, x=tpar, method=mth, method.args=list(eps=0.01, d=0.01, r=2), ypre=ypre, ynew=ynew, y2m=y2m, XM=XM, stp=stp, mod=dist, LG=T, MC=mc, qfun=qfun)  
+   jac=jacobian(func=jCP.ar1, x=tpar, method=mth,
+     method.args=list(eps=0.01, d=0.01, r=2), ypre=ypre, ynew=ynew,
+     y2m=y2m, XM=XM, stp=stp, mod=dist, LG=TRUE, MC=mc, qfun=qfun)  
    s2=jac%*%V%*%t(jac)
-   s=sqrt(s2) #s.e. of logit(P)
-   return(c(p,s))
+   s=sqrt(s2) #SE of logit(Phat)
+   return(c(p,s)) ## (Phat, SE(logit(Phat)))
  }
-
-
-dbb <- function(x, N, u, v) {
-  beta(x+u, N-x+v)/beta(u,v)*choose(N,x)
-}
-
-pbb <- function(q, N, u, v) {
-  sapply(q, function(xx) sum(dbb(0:xx, N, u, v)))
-}
-
-qbb <- function(p, N, u, v) {
-  pp <- cumsum(dbb(0:N, N, u, v))
-  sapply(p, function(x) sum(pp < x))
-}
-
-rbb <- function(n, N, u, v) {
-  p <- rbeta(n, u, v)
-  rbinom(n, N, p)
-}
-
-                                        #logit and inverse logit
-lgt=function(p){log(p/(1-p))}
-
-ilgt=function(x)
-{tem=exp(x)
- res=tem/(1+tem)
- return(res)
-}
-
-
-
-
-
-

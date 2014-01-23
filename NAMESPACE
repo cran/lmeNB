@@ -1,3 +1,5 @@
+import(lmeNBBayes,numDeriv,statmod)
+
 export(lmeNB,
        mle.fun,index.batch,
        mle.a3.fun,mle.ar1.fun,
