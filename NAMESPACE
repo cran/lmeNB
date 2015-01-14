@@ -1,8 +1,11 @@
+useDynLib(lmeNB)
+
 import(lmeNBBayes,numDeriv,statmod)
 
-export(lmeNB,
-       mle.fun,index.batch,
-       mle.a3.fun,mle.ar1.fun,
-       mle.ar1.non3,
+S3method(print, LinearMixedEffectNBFreq)
+
+export(lmeNB,index.batch,
+       fitSemiAR1,fitSemiIND,fitParaAR1,fitParaIND,
        jCP.ar1,CP1.ar1,MCCP.ar1,CP.ar1.se,CP.se,jCP,formulaToDat,
-       rNBME.R,print.LinearMixedEffectNBFreq)
+       rNBME.R,print.LinearMixedEffectNBFreq,
+       RElmeNB,int.numRE,int.denRE,dens_Yi.gY,densYijGivenYij_1AndGY,dbb)

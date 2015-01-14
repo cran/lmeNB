@@ -1,15 +1,15 @@
-                                        # Jun 22, 2012
-                                        #combining ind.sdt and ar1.sdt
+## Jun 22, 2012
+## combining ind.sdt and ar1.sdt
 
-                                        #rNBME.R is copied fro ind.sdt
-                                        #main changes: 
-                                        #(1) Add option 'NoN' to gdist. Under this option, othrp = gi.
-                                        #(2) Add argument 'd', a value between (0,1) or NULL
-                                        #if 'is.null(d)',  generate data from the independent model
-                                        #if '!is.null(d)', generate data from the AR(1) model
-                                        #rNBME.R calls 'rnb.ar1' to generate data from a AR(1) model
+## rNBME.R is copied fro ind.sdt
+## main changes: 
+## (1) Add option 'NoN' to gdist. Under this option, othrp = gi.
+## (2) Add argument 'd', a value between (0,1) or NULL
+## if 'is.null(d)',  generate data from the independent model
+## if '!is.null(d)', generate data from the AR(1) model
+## rNBME.R calls 'rnb.ar1' to generate data from a AR(1) model
 
-                                        #rNBME.R requires 'nr.fun' and 'rbb'
+## rNBME.R requires 'nr.fun' and 'rbb'
 
 rNBME.R <-
   function(gdist="G",  #dist'n for G, G=gamma, N=lognormal, U=uniform, GN=mix of G and normal, NoN for nonparametric

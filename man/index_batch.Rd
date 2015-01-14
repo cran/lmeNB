@@ -2,62 +2,106 @@
 \alias{index.batch}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{
-Compute the point estimate and its 95% confidence interval (for a parametric model) 
-of the conditional probability \emph{ Pr(q(Y_i,new)>=q(y_i,new)| Y_i,pre=y_i,pre)}
+The main function to compute the point estimates and 95\% confidence intervals (for a parametric model) 
+of the conditional probabilities 
+\eqn{ 
+Pr(q(\boldsymbol{Y}_{i,new}) \ge q(\boldsymbol{y}_{i,new})| \boldsymbol{Y}_{i,pre}=\boldsymbol{y}_{i,pre})
+}{
+Pr(q(Y[i,new])>=q(y[i,new])| Y[i,pre]=y[i,pre])
+} for multiple subjects.
 }
 
 \description{
 %
-Given an output of \code{\link{mle.fun}}, \code{\link{mle.ar1.fun}},
-\code{\link{mle.a3.fun}}, \code{\link{mle.ar1.non3}} or \code{\link{lmeNB}}.
-This function computes the probability of observing the response counts as large as those new observations of subject \emph{i} \emph{y_i,new=(y_i,m_i+1,...,y_i,ni)} conditional on the subject's previous observations \emph{y_i,pre(y_i,1,...,y_i,m_i)}.
-%
-%
-That is, this function returns a point estimate and its asymptotic 95% confidence interval (for a parametric model) of the conditional probability for each subject:
+Let \eqn{m_i}{m[i]} be the number of pre-measurements and
+\eqn{n_i}{n[i]} be the total number of repeated measures. 
+Then the repeated measure of a subject can be divided into a pre-measurement set and a new measurement set as 
+\eqn{
+\boldsymbol{Y}_{i}=(\boldsymbol{Y}_{i,pre},\boldsymbol{Y}_{i,new})
+}{
+Y[i]=(Y[i,pre],Y[i,new])
+}, where
+\eqn{
+\boldsymbol{Y}_{i,pre}=(Y_{i,1},\cdots,Y_{i,m_i})
+}{
+Y[i,pre]=(y[i,1],\cdots,Y[i,m[i]])
+} 
+and 
+\eqn{
+\boldsymbol{Y}_{i,new}=(Y_{i,m_i+1},\cdots,Y_{i,n_i})
+}{
+Y[i,new]=(Y[i,m[i]+1],...,Y[i,n[i]])
+}
+.
+Given an output of \code{\link{fitParaIND}}, \code{\link{fitParaAR1}},
+\code{\link{fitSemiIND}}, \code{\link{fitSemiAR1}} or \code{\link{lmeNB}},
+this function computes the probability of observing the response counts as large as those new observations of subject \eqn{i}{i},
+\eqn{
+\boldsymbol{y}_{i,new}
+}{
+y[i,new]
+} 
+conditional on the subject's previous observations 
+\eqn{
+\boldsymbol{y}_{i,pre}
+}{
+y[i,pre]
+} for subject \eqn{i}{i}.
+That is, this function returns a point estimate and its asymptotic 95\% confidence interval (for a parametric model) of the conditional probability for each subject:
 %
 
-\emph{ Pr(q(Y_i,new)>=q(y_i,new)| Y_i,pre=y_i,pre)}.
+\eqn{ 
+Pr(q(\boldsymbol{Y}_{i,new}) \ge q(\boldsymbol{y}_{i,new})| \boldsymbol{Y}_{i,pre}=\boldsymbol{y}_{i,pre})
+}{ 
+Pr(q(Y[i,new]) \ge q(y[i,new])| Y[i,pre]=y[i,pre]) 
+}.
 
-The standard error is not produced when the semi-parametric approach is employed.
+When the semiparametric approach is employed, the standard error and 95\% confidence intervals are computed using bootstrap samples.
+A scalar statistic to summarize the new response counts can be either the total count, 
+\eqn{q(\boldsymbol{Y}_{i,new})=\sum_{j=m_i+1}^{n_i} Y_{ij} }{  q(Y[i,new])=\sum[j=m[i]+1]^{n[i]} Y[ij]  }, 
+or the maximum, 
+\eqn{
+q(\boldsymbol{Y}_{i,new})=\max\{ Y_{ij};j=m_i+1,\cdots,n_i \} 
+}{
+q(Y[i,new])=\max\{ Y[ij];j=m[i]+1,...,n[i] \} 
+}.
 %
-A scalar statistic to summarize the new response counts can be either the total count, \emph{q(Y_i,new)=sum_{j=m_i+1}^ni Y_ij}, or the maximum, \emph{q(Y_i,new)=max \{ Y_ij;j=m_i+1,...,n_i \} }.
-%
-See Zhao et al., for more details.
-
+See Zhao et al.(2013), for more details.
 }
 
 
 
 \usage{
-index.batch(data,labelnp, ID, Vcode,olmeNB,subset=NULL, 
-            qfun = "sum", IPRT = TRUE,  i.se = TRUE, iMC = FALSE)	
+index.batch(data,         labelnp,     ID,  Vcode = NULL, olmeNB = NULL, subset = NULL, 
+            qfun = "sum", IPRT = TRUE, i.se = TRUE, MC = FALSE, C = FALSE,i.tol=1E-75)	
 }
 
 
 \arguments{
-  \item{data}{
-    A data frame, list or environment (or object coercible by as.data.frame to a data frame) containing the variables in the model.
-    The each row must contains the data corresponding to the repeated measure j of subjects and the rows \emph{(i,j)}s must be ordered as 
-    \emph{(1,1),...,(1,n_1),(2,1),...,(2,n_2),...,(N,n_N)}.
-    This dataset does not have to be the same as the one used in the
-  computations of negative binomial mixed effect regression (\code{\link{mle.fun}},\code{\link{mle.ar1.fun}},\code{\link{mle.a3.fun}},\code{\link{mle.ar1.non3}} or \code{\link{lmeNB}}).
-  }
-  \item{labelnp}{
-    A vector of length the total number of repeated measures, indicating new measures by \code{TRUE}.
-    For examples, if patient \emph{i} has a \emph{n_i} repeated measures and the last \emph{n_i-m_i+1} measures are new, then 
-    then \code{labelnp=c(rep(rep(FALSE,m_1),rep(TRUE,n_1-m_1+1)),rep(rep(FALSE,m_2),rep(TRUE,n_2-m_2+1)),...,rep(rep(FALSE,m_N),rep(TRUE,n_N-m_N+1)))}.}
+\item{data}{
+See \code{\link{lmeNB}}.
+This dataset does not have to be the same as the one used in the computations of negative binomial mixed effect regression 
+(\code{\link{fitParaIND}}, \code{\link{fitParaAR1}},
+\code{\link{fitSemiIND}}, \code{\link{fitSemiAR1}} or \code{\link{lmeNB}}).
+}
+\item{labelnp}{
+A vector of length the total number of repeated measures 
+(=\eqn{ \sum_{i=1}^N n_i }{ \sum[i=1]^N n[i] }), indicating new measures by \code{TRUE} and pre-measures by \code{FALSE}. For examples, suppose there are three subjects of interest.
+
+The first subject has a \eqn{n_1=7}{n[1]=7} repeated measures and the last \emph{3} measures are new. 
+The second and the third subjects both have \eqn{n_2=n_3=5}{n[2]=n[3]=5} repeated measures  and the last 2 measures are new. In this scenario,
+
+\code{labelnp}\code{=c(rep(FALSE,4),} \code{rep(TRUE,3),} \code{rep(FALSE,3),} \code{rep(TRUE,2)} \code{,rep(FALSE,3)} \code{,rep(TRUE,2))}.
+}
   \item{ID}{
-   A vector of length \emph{ sum_i^N n_i }, containing the subject IDs. i.e., \code{c(rep(1,n_1),rep(2,n_2),...,rep(N,n_N))}
+   See \code{\link{lmeNB}}. The length of \code{ID} must be the same as \code{nrow(data)}.
  }
  \item{Vcode}{
-   A vector of length the total number of repeated measures, containing the indices of time point.
-   For example, 
-   there are three subjectss and two subjects do not have missing visits and completed five visits while the other subjects missed a visit at the third time and there are four visits in total, then
-   \code{Vcode=c(1,2,3,4,5,1,2,3,4,5,1,2,4,5)}.
-   Necessary only if the olmeNB is an output of AR(1) models from \code{\link{mle.ar1.fun}},\code{\link{mle.ar1.non3}}.
-}
+    Necessary only if the \code{olmeNB} is an output of AR(1) models. 
+    See \code{\link{lmeNB}}.
+}   
   \item{olmeNB}{
-    Output of \code{\link{mle.fun}},\code{\link{mle.ar1.fun}},\code{\link{mle.a3.fun}},\code{\link{mle.ar1.non3}}
+    Output of \code{\link{fitParaIND}},\code{\link{fitParaAR1}},\code{\link{fitSemiIND}},\code{\link{fitSemiAR1}}
     or \code{\link{lmeNB}}.
   }
  \item{subset}{
@@ -71,22 +115,28 @@ index.batch(data,labelnp, ID, Vcode,olmeNB,subset=NULL,
    If \code{qfun="max"},
    a scalar statistic to summarize the new response counts is the maximum.
   
+  %% linked by jCP_ar1
  }
  \item{IPRT}{
    print control.
  }
  
  
- \item{ i.se}{
+ \item{i.se}{
    If \code{i.se=TRUE} then the standard errors of the estimator of the conditional probability are returned for the output of 
-   \code{\link{mle.fun}} or \code{\link{mle.ar1.fun}}.
-   The semi-parametric approach, \code{\link{mle.a3.fun}} or \code{\link{mle.ar1.non3}}, do not return the standard errors.
+   \code{\link{fitParaIND}} or \code{\link{fitParaAR1}}.
+   The semi-parametric approach, \code{\link{fitSemiIND}} or \code{\link{fitSemiAR1}}, do not return the standard errors.
  }
- \item{iMC}{
-   Necessary for the AR(1) outputs,\code{\link{mle.ar1.fun}} and \code{\link{mle.ar1.non3}}.
-   If \code{iMC=TRUE} then the function \code{MCCP.ar1} is called and the Monte carlo integration is performed. Fast but could be unreliable; not recommended for computing the confidence intervals
-   If \code{iMC=FALSE} then the function \code{CP1.ar1} is called and the adaptive quadrature is performed. Slow but reliable. 
+ \item{MC}{
+   Necessary when \code{olmeNB} if the AR(1) model outputs.%,\code{\link{fitParaAR1}} and \code{\link{fitSemiAR1}}.
+   See \code{\link{CP.ar1.se}}.
  }
+
+\item{C}{
+See \code{\link{lmeNB}}. 
+\code{C=TRUE} option could make computations of CPI faster for some patients.
+}
+\item{i.tol}{ See \code{\link{lmeNB}}.}
 }
 
 
@@ -96,12 +146,12 @@ The standard error of the point estimate on the logit scale is constructed using
 %
 }
 \value{
-The \emph{N} by 4 (3, if hide the SE) numeric matrix, containing the point estimate of the conditional probability, and the lower and the upper bounds of the 95 % confidence intervals. 
+The \eqn{N}{N} by 4 (3, if hide the SE) numeric matrix, containing the point estimate of the conditional probability, and the lower and the upper bounds of the 95 % confidence intervals. 
 % hide the SE?
 }
 
 \references{
-Zhao, Y., Li, D.K.B., Petkau, J.A., Riddehough, A. & Traboulsee, A.  Detection of unusual increases in MRI lesion counts in multiple sclerosis patients.
+Detection of unusual increases in MRI lesion counts in individual multiple sclerosis patients. (2013) Zhao, Y., Li, D.K.B., Petkau, A.J., Riddehough, A., Traboulsee, A., Journal of the American Statistical Association.
 }
 \author{
  Zhao, Y. and Kondo, Y.
@@ -113,14 +163,14 @@ Zhao, Y., Li, D.K.B., Petkau, J.A., Riddehough, A. & Traboulsee, A.  Detection o
 %% ~Make other sections like Warning with \section{Warning }{....} ~
 
 \seealso{
-A wrapper function to fit negative binomial mixed effect model:
-  \code{\link{lmeNB}}
-  
-The functions to fit the relevant models:
-\code{\link{mle.fun}},
-\code{\link{mle.ar1.fun}},
-\code{\link{mle.a3.fun}},
-\code{\link{mle.ar1.non3}},
+The main function to fit the Negative Binomial mixed-effect model:
+\code{\link{lmeNB}},
+
+The internal functions of \code{\link{lmeNB}} for fitting relevant models:
+\code{\link{fitParaIND}},
+\code{\link{fitParaAR1}},
+\code{\link{fitSemiIND}},
+\code{\link{fitSemiAR1}},
 
 The subroutines of \code{\link{index.batch}}:
 \code{\link{jCP.ar1}},
@@ -136,7 +186,8 @@ The functions to generate simulated datasets:
 
 
 \examples{
-## See the examples in linked R-functions. 
+## See the examples in help files of 
+## fitParaIND, fitAR1IND, fitSemiIND, fitSemiAR1 and rNBME.R
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

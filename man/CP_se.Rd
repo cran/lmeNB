@@ -8,44 +8,44 @@ Compute a conditional probability of observing a set of counts as extreme as the
 
 
 \description{
-%
-Given the parameter estimates of \code{c( alpha,theta,beta0,beta1,...)} of the negative binomial mixed effect independent model,
-these functions compute the following conditional probability:
+Given the parameter estimates of 
+\eqn{\alpha,\theta, \beta_0, \beta_1,\cdots}{\alpha,\theta, \beta[0], \beta[1],...} 
+of the negative binomial mixed effect AR(1) model,
+these functions compute the following conditional probability: 
 
-\emph{Pr(q(Y_new) >= q(y_new) | Y_pre = y_pre)}
 
-where \emph{y_new} and \emph{y_pre} are vectors of previous and new observations from a same subject and \code{q()} is a function which provides a scalar summary of the new observations.
-%
+\eqn{ 
+Pr(q(\boldsymbol{Y}_{i,new}) \ge q(\boldsymbol{y}_{i,new})| \boldsymbol{Y}_{i,pre}=\boldsymbol{y}_{i,pre})
+}{
+Pr(q(Y[i,new])>=q(y[i,new])|Y[i,pre]=y[i,pre])
+}
 
-These functions are subroutines of \code{\link{index.batch}}.
-%
-When input the maximum likelihood estimates of the paramters, \code{CP.se} returns the estimate of the conditional probability of single subject and the asymptotic standard error of the logit of the estimate of the conditional probability based on the independent model.
-The computation for of the probability is done by its subroutine \code{jCP}.
+
+where \eqn{\boldsymbol{y}_{i,new}}{y[i,new]} and \eqn{y_{i,pre}}{y[i,pre]} are vectors of previous and new observations from subject \eqn{i}{i} and \eqn{q()}{q()} is a function which provides a scalar summary of the new observations. These functions are subroutines of \code{\link{index.batch}}. \code{CP.se} returns the estimate of the conditional probability of single subject and the asymptotic standard error of the logit of the estimate of the conditional probability based on the independent model. The computation for of the probability is done by its subroutine \code{jCP}.
 }
 
 
 \usage{
-CP.se(tpar, Y1, Y2, sn1, sn2, XM = NULL, dist = "G", V, pty = "sum")
-jCP(tpar, Y1, Y2, sn1, sn2, XM = NULL, dist = "G", LG = FALSE, oth = NULL, type = "sum") 
+CP.se(tpar, Y1, Y2, sn1, sn2, XM = NULL,
+      RE = "G", V, qfun ="sum",i.tol)
+jCP(tpar, Y1, Y2, sn1, sn2, XM = NULL, 
+    RE = "G", LG =FALSE, oth = NULL, qfun = "sum",i.tol)
 }
 
 
 
 \arguments{
   \item{tpar}{
-
-A vector of length 3 + # covariates, containing the estimates of the model in the order of \code{log(a),log(theta),beta0,beta1...}
-If random effects are assumed to be from the log-normal distribution, then \code{theta} is a variance estimate of the random effect.
-If random effects are assumed to be from the gamma distribution, then \code{theta} is a \code{shape} parameter estimate.
-If the semi-parametric approach is taken, then \code{theta} is a place holder and can be any number.
-
-
+A vector of length 3 + # covariates, containing the estimates of the model in the order of 
+\eqn{\log(\alpha),\log(\theta),\beta_0,\beta_1,\cdots}{\log(\alpha),\log(\theta),\beta[0],\beta[1],...}.
+Note that \eqn{\alpha}{\alpha} is the dispersion parameter and the \eqn{\theta}{\theta} is a variance estimate of the random effect.
+If the semi-parametric approach is taken, then \eqn{\log(\theta)}{\log(\theta)} is a place holder and can be any number.
 }
   \item{Y1}{
-A scalar containing the sum of the previously observed response counts of a subject.
+A scalar containing the sum of the previously observed response counts of a subject. 
 }
   \item{Y2}{
-A scalar containing the summary statistics of the newly observed response counts of a subject \emph{ q(y_new)}
+A scalar containing the summary statistics of the newly observed response counts of a subject \eqn{ q(y_{i,new})}{ q(y[i,new])}
 }
   \item{sn1}{
 The number of previous observations.
@@ -54,55 +54,50 @@ The number of previous observations.
 The number of new observations.
 }
   \item{XM}{
-A \emph{n_i} by # covariates matrix containing the covariate values of subject \emph{i}, where whre \emph{n_i} is the total number of previous and new observations.
-If there is no covariate, i.e., the model only has an intercept term, then set \code{XM=NULL}.
+A \eqn{n_i}{n[i]} by # covariates matrix containing the covariate values of subject \eqn{i}{i}, where whre \eqn{n_i}{n[i]} is the total number of previous and new observations. If there is no covariate, i.e., the model only has an intercept term, then set \code{XM=NULL}.
 }
-  \item{dist}{
-If \code{dist=="G"}, then the conditional probability is computed by assuming the random effect is from the gamma distribution.
-If \code{dist=="N"}, then the conditional probability is computed by assuming the random effect is from the log-normal distribution.
-
-Note that the semiparametric model is NOT accepted in \code{CP.se}. For \code{jCP}, if \code{dist="NoN"}, then the conditional probability is computed by assuming the random effect is from a distribution represented by the argument \code{oth}..
+  \item{RE}{
+See \code{\link{lmeNB}}.
+Note that the semiparametric model is NOT accepted in \code{CP.se}. For \code{jCP}, if \code{dist="NoN"}, then the conditional probability is computed by assuming the random effect is from a distribution represented by the argument \code{oth}.
 }
   \item{V}{
-The variance covariance matrix of the parameter estimates.
+The variance covariance matrix of the parameters \code{tpar}.
 }
-  \item{pty}{
-The summary statistics for the new scans. \emph{q()}. The current options are \code{"sum"} and \code{"max"}.
+  \item{qfun}{
+See \code{\link{index.batch}}.
 }
 
 \item{oth}{
-The argument only for \code{jCP}.
-
-If \code{dist= "G"} or \code{"N"}, \code{oth=NULL}.
-If \code{dist="NoN"}, \code{othr} must be the frequency table of the random effects.
-i.e.,\code{dist=obj$gtb} where \code{obj} is the output of \code{\link{mle.a3.fun}}.
+If \code{RE= "G"} or \code{"N"}, then \code{oth} should be {NULL}.
+If \code{RE="NoN"}, \code{oth} must be the frequency table of the random effects.
+i.e.,\code{RE=obj$gtb} where \code{obj} is the output of \code{\link{fitSemiIND}}.
 }
 
   \item{LG}{
-If \code{LG=TRUE} then the logit of the conditional probability is returned.
+If \code{LG=TRUE}, then the logit of the conditional probability is returned.
 }
+\item{i.tol}{See \code{\link{lmeNB}}}
 
-\item{type}{
-Same as \code{pty}.
-}
 }
 
 
 \references{
-Zhao, Y., Li, D.K.B., Petkau, J.A., Riddehough, A. & Traboulsee, A.  Detection of unusual increases in MRI lesion counts in multiple sclerosis patients.
+Detection of unusual increases in MRI lesion counts in individual multiple sclerosis patients. (2013) Zhao, Y., Li, D.K.B., Petkau, A.J., Riddehough, A., Traboulsee, A., Journal of the American Statistical Association.
 }
 \author{
  Zhao, Y. and Kondo, Y.
 }
 
 \seealso{
+The main function to fit the model is:
+\code{\link{lmeNB}},
 
-The functions to fit the relevant models:
+The internal functions of \code{\link{lmeNB}} for fitting relevant models:
 
-\code{\link{mle.fun}},
-\code{\link{mle.ar1.fun}},
-\code{\link{mle.a3.fun}},
-\code{\link{mle.ar1.non3}},
+\code{\link{fitParaIND}},
+\code{\link{fitParaAR1}},
+\code{\link{fitSemiIND}},
+\code{\link{fitSemiAR1}},
 
 The other subroutines of \code{\link{index.batch}} to compute the conditional probability index:
 %\code{\link{jCP.ar1}},
@@ -130,7 +125,7 @@ sn1 <- 2
 sn2 <- 3
 ## the covariate matrix
 XM <- NULL
-dist <- "G"
+RE <- "G"
 ## the variance covariance matrix:
 V <- matrix(
   c(0.0490673003, -0.0004481864, 0.013279476,
@@ -138,14 +133,14 @@ V <- matrix(
     0.0132794760,  0.0012315221, 0.023888065),nrow=3)
 
 ## the estimate of the conditional probability based on the sum summary statistics and its SE
-CP.se(tpar = tpar, Y1=Y1 ,Y2= Y2, sn1 = sn1, sn2 = sn2, XM = XM, dist = dist, V = V, pty = "sum")
+CP.se(tpar = tpar, Y1=Y1 ,Y2= Y2, sn1 = sn1, sn2 = sn2, XM = XM, RE = RE, V = V, qfun = "sum")
 
 ## the estimate of the conditional probability based on the max summary statistics and its SE
-CP.se(tpar = tpar, Y1=Y1 ,Y2= Y2, sn1 = sn1, sn2 = sn2, XM = XM, dist = dist, V = V, pty = "max")
+CP.se(tpar = tpar, Y1=Y1 ,Y2= Y2, sn1 = sn1, sn2 = sn2, XM = XM, RE = RE, V = V, qfun = "max")
 
 ## jCP calls for CP.se to compute the estimate of the conditional probability
 jCP(tpar = tpar, Y1 = Y1, Y2 = Y2, sn1 = sn1, sn2 = sn2, 
-    XM = XM, dist = dist, LG = FALSE, oth = NULL, type = "sum")
+    XM = XM, RE = RE, LG = FALSE, oth = NULL, qfun = "sum")
 }
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

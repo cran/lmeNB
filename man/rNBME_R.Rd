@@ -5,9 +5,9 @@
 Simulate a dataset from the negative binomial mixed-effect independent/AR(1) model 
 }
 \description{
-This function simulates a dataset based on the negative binomial mixed-effect independent/AR(1) model with two treatment groups described in Zhao et al. The group mean can be different at each time point, but no other covariates are allowed.
+This function simulates a dataset based on the negative binomial mixed-effect independent/AR(1) model with two treatment groups described in Zhao et al (2013). The group mean can be different at each time point, but no other covariates are allowed.
 %
-See \code{\link{mle.fun}}, \code{\link{mle.ar1.fun}} for details of the model explanations.
+See \code{\link{fitParaIND}}, \code{\link{fitParaAR1}} for details of the model explanations.
 %
 }
 \usage{
@@ -21,22 +21,19 @@ rNBME.R(
 \arguments{
   \item{gdist}{
 
-The distribution of the random effect term \emph{G_i}.
+The distribution of the random effect term \eqn{G_i}{G[i]}.
 
-If \code{gdist="G"}, \emph{G_i} is from the gamma distribution.
+If \code{gdist="G"}, \eqn{G_i}{G[i]} is from the gamma distribution.
 
-If \code{gdist="N"},  \emph{G_i} is from the log normal distribution.
+If \code{gdist="N"}, \eqn{G_i}{G[i]} is from the log normal distribution.
 
-If \code{gdist="U"}, \emph{G_i} (on the log scale) is from the uniform distribution.
+If \code{gdist="U"}, \eqn{G_i}{G[i]} (on the log scale) is from the uniform distribution.
 
-If \code{gdist="GN"}, \emph{G_i} is from the mixture of the gamma distribution and the normal distribution.
+If \code{gdist="GN"}, \eqn{G_i}{G[i]} is from the mixture of the gamma distribution and the normal distribution.
 
 If the generated values are negative, they are truncated to zero.
 
-If \code{gdist="NoN"}, \emph{G_i} is sampled from the pre-specified vector \code{othrp} with replacement.
-
-
-
+If \code{gdist="NoN"}, \eqn{G_i}{G[i]} is sampled from the pre-specified vector \code{othrp} with replacement.
 
 }
   \item{n}{
@@ -49,7 +46,7 @@ Generated datasets are balanced design.
   \item{th}{
 If \code{gdist="G"}, \code{th} is a \code{scale} parameter of the gamma distribution.
 
-If \code{gdist="N"} or \code{gdist=="U"}, \code{th} is \emph{var(G_i)}.
+If \code{gdist="N"} or \code{gdist=="U"}, \code{th} is \eqn{Var(G_i)}{Var(G[i])}.
 
 If \code{gdist="GN"}, see details.
 
@@ -58,29 +55,28 @@ If \code{gdist="NoN"}, this parameter is not used.
 
 \item{u1}{
 %
-A vector of length \emph{sn}, specifying the mean of the treatment group 1 \emph{ E(Y_ij)} =\code{ u1[j]}.
-%
+A vector of length \emph{sn}, specifying the mean of the treatment group 1 \eqn{ E(Y_ij)}{E(Y[ij])} =\code{ u1[j]}.
 % Although \emph{beta} of the negative binomial mixed-effect independent model does not depend on time points,
-%
 %\code{ind.sdt} allows to generate response counts whose mean depend on time %points.
 %
 }
 \item{u2}{
-A vector of length \emph{sn}, specifying the mean of the treatment group 2 \emph{ E(Y_ij)} =\code{ u2[j]}.
+A vector of length \eqn{sn}{sn}, specifying the mean of the treatment group 2 \eqn{ E(Y_ij)}{E(Y[ij])} =\code{ u2[j]}.
 }
   \item{a}{
 %
-The parameter \emph{a} of the negative binomial mixed-effect independent model. See \cite{\link{mle.fun}}. 
+The dispersion parameter \eqn{\alpha}{\alpha} of the negative binomial mixed-effect independent model. 
+See description in \cite{\link{lmeNB}}. 
 %
 }
 
 \item{d}{
 If \code{d=NULL}, generate data from the independent model.
-If \code{d} is a scalar between 0 and 1, then d is \emph{delta} in the AR(1) model, and generate datasets from the AR(1) model.
+If \code{d} is a scalar between 0 and 1, then d is \eqn{\delta}{delta} in the AR(1) model, and generate datasets from the AR(1) model.
 }
   \item{othrp}{
 If \code{gdist="GN"}, parameters for the \code{GN} option. See details.
-If \code{gdist="NoN"}, \code{othrp} is a vector, containing a sample of \emph{G_i}, which is treated as a population and \emph{G_i} is resampled.
+If \code{gdist="NoN"}, \code{othrp} is a vector, containing a sample of \eqn{G_i}{G[i]}, which is treated as a population and \eqn{G_i}{G[i]} is resampled.
 }
 }
 
@@ -99,7 +95,7 @@ If \code{gdist=="GN"}, datasets are generated from:
 
 \code{othrp$p.mx}*N(\code{mean}=\code{othrp$u.n},\code{s.d}=\code{othrp$s.n}) + (1-\code{othrp$p.mx})*gamma\code{(scale=th,shape)},
 %
-where \code{shape} of the gamma distribution is chosen to ensure  \emph{E(G_i)=1}.
+where \code{shape} of the gamma distribution is chosen to ensure  \eqn{E(G_i)=1}{E(G[i])=1}.
 
 
 }
@@ -118,7 +114,7 @@ The vector of length \code{n*sn} containing the indicies of time points: \code{r
 }
 
 \references{
-Zhao, Y., Li, D.K.B., Petkau, J.A., Riddehough, A. & Traboulsee, A.  Detection of unusual increases in MRI lesion counts in multiple sclerosis patients.
+Detection of unusual increases in MRI lesion counts in individual multiple sclerosis patients. (2013) Zhao, Y., Li, D.K.B., Petkau, A.J., Riddehough, A., Traboulsee, A., Journal of the American Statistical Association.
 }
 \author{
  Zhao, Y. and Kondo, Y.
@@ -130,11 +126,14 @@ Zhao, Y., Li, D.K.B., Petkau, J.A., Riddehough, A. & Traboulsee, A.  Detection o
 
 %% ~Make other sections like Warning with \section{Warning }{....} ~
 \seealso{
+The main function to fit the Negative Binomial mixed-effect model:
+\code{\link{lmeNB}},
+
 The functions to fit related models:
-\code{\link{mle.fun}},
-\code{\link{mle.ar1.fun}},
-\code{\link{mle.a3.fun}},
-\code{\link{mle.ar1.non3}},
+\code{\link{fitParaIND}},
+\code{\link{fitParaAR1}},
+\code{\link{fitSemiIND}},
+\code{\link{fitSemiAR1}},
 
 The subroutines of \code{\link{index.batch}} to compute the conditional probability index:
 \code{\link{jCP.ar1}},
@@ -150,63 +149,7 @@ The subroutines of \code{\link{index.batch}} to compute the conditional probabil
 \examples{
 
 \dontrun{
-
-## ================================================================================ ##
-## generate a simulated dataset from the negative binomial mixed-effect 
-## independent model:
-## Y_ij | G_i = g_i ~ NB(r_ij,p_i) where r_ij = exp(X^T beta)/a , p_i =1/(a*g_i+1)
-## with G_i ~ log-normal(E(G_i)=1,var(G_i)=th)
-set.seed(1)
-sn = 5 # the number of repeated measures of each patient
-n = 80 ## the number of patients
-loga = - 0.5 
-a = exp(loga) ## dispersion parameter 
-logtheta <- 1.3
-th = exp(logtheta) ## the variance of the gamma distributed random effect g_i
-
-
-## No difference between the means of groups 
-## The model only has an intercept term beta0 = 0.5
-b0 = 0.5
-u1 = rep(exp(b0),sn)  ## the mean vector for group 1 at time point 1,...,sn
-u2 = rep(exp(b0),sn) ## the mean vector for group 2 at time point 1,...,sn
-
-## Data 0 generated from the IND model
-DT.ind= rNBME.R(gdist="N", n=n, a=a, th=th, u1=u1, u2=u2, sn=sn)
-## Data 1
-DT.ar= rNBME.R(gdist="N", n=n, a=a, th=th, u1=u1, u2=u2, sn=sn, d=0.4)
-
-dt.ind=data.frame(CEL=DT.ind$y,Vcode=DT.ind$vn-2,ID=DT.ind$id)
-dt.ar=data.frame(CEL=DT.ar$y,Vcode=DT.ar$vn-2,ID=DT.ar$id)
-## ================================================================================ ##
-
-#### Fit IND models
-tst1=lmeNB(CEL~1, data=dt.ind, ID=dt.ind$ID, IPRT=T)
-tst2=lmeNB(CEL~1, data=dt.ar, ID=dt.ar$ID, IPRT=T)
-tst3=lmeNB(CEL~1, data=dt.ind, ID=dt.ind$ID, IPRT=T, RE="N")
-tst4=lmeNB(CEL~1, data=dt.ar, ID=dt.ar$ID, IPRT=T, RE="N") #not printing
-tst5=lmeNB(CEL~Vcode, data=dt.ind, ID=dt.ind$ID, IPRT=T, RE="N")
-## conditional probability index
-Psum5=index.batch(olmeNB=tst5, labelnp=dt.ind$Vcode >= 1, data=dt.ind, ID=dt.ind$ID)
-
-
-
-## Fit the semi-parametric model
-tst6=lmeNB(CEL~1, data=dt.ind, ID=dt.ind$ID, IPRT=T, RE="semipara")
-tst7=lmeNB(CEL~Vcode, data=dt.ind, ID=dt.ind$ID, IPRT=T, RE="semipara")
-## conditional probability index
-Psum7=index.batch(olmeNB=tst7,labelnp=dt.ind$Vcode >= 1, data=dt.ind, 
-                 ID=dt.ind$ID, Vcode=Vcode)
-
-
-## Fit the AR1 models
-tst8=lmeNB(CEL~1, data=dt.ind, ID=dt.ind$ID, IPRT=T,AR=T,Vcode=dt.ind$Vcode)
-tst9=lmeNB(CEL~1, data=dt.ar, ID=dt.ar$ID, IPRT=T,AR=T,Vcode=dt.ar$Vcode)
-## conditional probability index
-Psum9=index.batch(olmeNB=tst9, labelnp=dt.ind$Vcode >= 1, data=dt.ind, 
-                  ID=dt.ind$ID,Vcode=dt.ind$Vcode)
-
-
+## See the examples in help files of fitParaIND, fitParaAR1, fitSemiIND, fitSemiAR1 and lmeNB
 
 }
 }
